@@ -74,7 +74,7 @@ const translations = {
     saveSuccessDescription: 'Your itinerary has been saved to your dashboard.',
     saveErrorTitle: 'Save Failed',
     saveErrorDescription: 'Could not save itinerary. Please try again.',
-    bookOnEaseMyTrip: 'Book on EaseMyTrip',
+    bookOnPartner: 'Book with Partner',
     openOla: 'Open Ola',
   },
   hi: {
@@ -101,7 +101,7 @@ const translations = {
     saveSuccessDescription: 'आपका यात्रा कार्यक्रम आपके डैशबोर्ड में सहेज लिया गया है।',
     saveErrorTitle: 'सहेजें विफल',
     saveErrorDescription: 'यात्रा कार्यक्रम सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
-    bookOnEaseMyTrip: 'EaseMyTrip पर बुक करें',
+    bookOnPartner: 'पार्टनर के साथ बुक करें',
     openOla: 'ओला खोलें',
   },
 };
@@ -372,14 +372,14 @@ export default function ItineraryPage() {
             }
             return (
                 <Button variant="outline" size="sm" onClick={() => window.open('https://www.easemytrip.com', '_blank')}>
-                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnEaseMyTrip}
+                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnPartner}
                 </Button>
             );
         }
         if (segment.type === 'free') { // Assuming 'free' is for hotel stays
             return (
                 <Button variant="outline" size="sm" onClick={() => window.open('https://www.easemytrip.com/hotels', '_blank')}>
-                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnEaseMyTrip}
+                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnPartner}
                 </Button>
             );
         }

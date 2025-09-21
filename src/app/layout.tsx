@@ -6,7 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'EasedYourTrip - AI-Powered Travel Planning',
+  title: 'EaseMyJournAI - AI-Powered Travel Planning',
   description: 'Generate personalized trip itineraries with the power of AI.',
 };
 

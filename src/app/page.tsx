@@ -57,7 +57,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20" />
         <div className="relative h-full flex flex-col items-center justify-center text-center text-white px-4">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-shadow-lg">
-            EasedYourTrip
+            EaseMyJournAI
           </h1>
           <p className="mt-4 max-w-2xl text-lg md:text-xl text-neutral-100/90 text-shadow">
             Your personal AI travel assistant. Crafting unforgettable journeys, just for you.

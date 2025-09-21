@@ -11,7 +11,7 @@ export function Footer() {
         </div>
         <div className="text-center md:text-left mb-4 md:mb-0">
           <p className="text-sm">
-            &copy; {new Date().getFullYear()} EasedYourTrip. All rights reserved.
+            &copy; {new Date().getFullYear()} EaseMyJournAI. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             AI-powered travel planning for the modern adventurer.
