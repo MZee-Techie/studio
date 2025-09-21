@@ -45,6 +45,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
@@ -480,10 +482,10 @@ export default function ItineraryPage() {
               <Languages />
             </Button>
             <Button variant="outline" onClick={handleSaveItinerary}>
-              <Save className="mr-2" /> {t.saveToDashboard}
+              <Save className="mr-2 h-4 w-4" /> {t.saveToDashboard}
             </Button>
             <Button onClick={handlePdfDownload}>
-              <Download className="mr-2" /> {t.downloadPDF}
+              <Download className="mr-2 h-4 w-4" /> {t.downloadPDF}
             </Button>
           </div>
         </div>
@@ -527,7 +529,7 @@ export default function ItineraryPage() {
                   className="bg-secondary/50"
                 />
                 <Button onClick={handleAdjustItinerary} disabled={isAdjusting || !modificationPrompt} className="w-full">
-                  {isAdjusting ? <Loader2 className="animate-spin mr-2" /> : <Send />}
+                  {isAdjusting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
                   {isAdjusting ? t.adjusting : t.adjustItinerary}
                 </Button>
               </CardContent>

@@ -42,7 +42,7 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-background');
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex flex-col min-h-[100dvh] bg-background">
       <section className="relative w-full h-[70vh] md:h-[80vh]">
         {heroImage && (
           <Image
@@ -54,21 +54,21 @@ export default function Home() {
             data-ai-hint={heroImage.imageHint}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20" />
-        <div className="relative h-full flex flex-col items-center justify-center text-center text-white px-4">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-shadow-lg">
-            EaseMyJournAI
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+        <div className="relative h-full flex flex-col items-center justify-center text-center text-foreground px-4">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight">
+            EaseMyJourn<span className="text-primary">AI</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-lg md:text-xl text-neutral-100/90 text-shadow">
+          <p className="mt-4 max-w-2xl text-lg md:text-xl text-foreground/80">
             Your personal AI travel assistant. Crafting unforgettable journeys, just for you.
           </p>
-          <Button asChild size="lg" className="mt-8 shadow-lg">
+          <Button asChild size="lg" className="mt-8 shadow-lg transition-transform hover:scale-105 active:scale-100">
             <Link href="/plan">Start Planning Your Trip</Link>
           </Button>
         </div>
       </section>
 
-      <section id="features" className="w-full py-16 md:py-24 lg:py-32 bg-background">
+      <section id="features" className="w-full py-16 md:py-24 lg:py-32">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-3">
@@ -82,7 +82,7 @@ export default function Home() {
           </div>
           <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3 pt-16">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-card shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <Card key={index} className="bg-card shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border-transparent hover:border-primary/50">
                 <CardHeader className="flex flex-row items-center gap-4">
                   {feature.icon}
                   <CardTitle className="font-headline text-xl">{feature.title}</CardTitle>
@@ -96,7 +96,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 lg:py-32 bg-secondary">
+      <section className="w-full py-16 md:py-24 lg:py-32 bg-secondary/50">
         <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6">
           <div className="space-y-3">
             <h2 className="text-3xl font-headline font-bold tracking-tighter md:text-4xl/tight">
@@ -107,7 +107,7 @@ export default function Home() {
             </p>
           </div>
           <div className="mx-auto w-full max-w-sm space-y-2 mt-6">
-            <Button asChild size="lg" className="w-full shadow-md">
+            <Button asChild size="lg" className="w-full shadow-lg transition-transform hover:scale-105 active:scale-100">
               <Link href="/plan">
                 Plan a New Trip
               </Link>

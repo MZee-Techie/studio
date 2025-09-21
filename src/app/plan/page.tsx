@@ -19,7 +19,6 @@ import { format } from 'date-fns';
 import { CalendarIcon, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Sparkles } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import type { ItineraryRequest } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -158,9 +157,10 @@ export default function PlanPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      const anchors = Array.isArray(data.anchors) 
-        ? data.anchors.filter(a => a.trim() !== '') 
-        : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()).filter(s => s !== '') : []);
+       const anchors = Array.isArray(data.anchors)
+        ? data.anchors.filter(a => a.trim() !== '')
+        : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()).filter(Boolean) : []);
+
 
       const request: ItineraryRequest = {
         ...data,
