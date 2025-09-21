@@ -54,8 +54,6 @@ EaseMyJournAI is built on a modern, serverless technology stack designed for per
 
 4.  **Deployment (Firebase App Hosting)**: The entire application is deployed on **Firebase App Hosting**, providing a robust, scalable, and secure serverless environment.
 
-![Tech Flow Diagram](https://storage.googleapis.com/spec-validator.appspot.com/studio-assets/tech_flow.png)
-
 ---
 
 ### 🚀 Getting Started
