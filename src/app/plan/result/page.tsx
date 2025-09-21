@@ -81,7 +81,7 @@ export default function ResultPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4">
-                    {day.activities.map((activity, activityIndex) => (
+                    {day.activities && day.activities.map((activity, activityIndex) => (
                       <li key={activityIndex} className="flex flex-col p-4 bg-secondary/50 rounded-lg">
                         <span className="font-bold text-md">{activity.time}</span>
                         <p className="text-muted-foreground mt-1">{activity.description}</p>
