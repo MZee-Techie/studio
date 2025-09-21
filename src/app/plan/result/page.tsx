@@ -74,7 +74,7 @@ export default function ResultPage() {
             </Button>
           </div>
           <Accordion type="single" collapsible defaultValue="item-0" className="w-full">
-            {itinerary.days.map((day, index) => (
+            {Array.isArray(itinerary.days) && itinerary.days.map((day, index) => (
               <AccordionItem value={`item-${index}`} key={index}>
                 <AccordionTrigger className="font-headline text-xl">
                   Day {day.day}: {day.theme}
