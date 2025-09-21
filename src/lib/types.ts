@@ -45,12 +45,12 @@ export const ItineraryResponseSchema = z.object({
       segments: z.array(
         z.object({
           type: z.enum(['transport', 'activity', 'meal', 'free']),
-          name: z.string().optional(),
+          name: z.string().describe('A descriptive name for the segment. For transport, this should be like "Flight to [City]" or "Train from [City A] to [City B]". This field is required.'),
           description: z.string().describe('A brief, engaging description of the place or activity, highlighting what makes it special.').optional(),
           placeId: z.string().describe('The Google Maps Place ID, if available.').optional(),
           lat: z.number().optional().describe('Latitude of the location.'),
           lon: z.number().optional().describe('Longitude of the location.'),
-          mode: z.string().describe('flight|train|bus|cab|metro|bike|walk').optional(),
+          mode: z.string().describe('flight|train|bus|cab|metro|walk').optional(),
           from: z.string().optional(),
           to: z.string().optional(),
           fromPlaceId: z.string().optional(),

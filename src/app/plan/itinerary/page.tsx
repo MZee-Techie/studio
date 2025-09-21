@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +26,7 @@ import {
   ChevronDown,
   MapPin,
   Star,
+  Save,
 } from 'lucide-react';
 import type { Itinerary } from '@/lib/types';
 import { adjustItinerary } from '@/ai/flows/dynamic-itinerary-adjustment';
@@ -46,9 +47,8 @@ interface jsPDFWithAutoTable extends jsPDF {
 const translations = {
   en: {
     title: 'Your Custom Itinerary',
-    demo: 'Demo',
+    saveToDashboard: 'Save to Dashboard',
     downloadPDF: 'Download PDF',
-    regenerate: 'Regenerate with changes',
     adjusting: 'Adjusting...',
     liveChecks: 'Trip Dashboard',
     budgetStatus: 'Budget Status',
@@ -65,12 +65,15 @@ const translations = {
     backToPlan: 'Back to Plan',
     addItem: 'Add item',
     viewInMap: 'View in Maps',
+    saveSuccessTitle: 'Itinerary Saved',
+    saveSuccessDescription: 'Your itinerary has been saved to your dashboard.',
+    saveErrorTitle: 'Save Failed',
+    saveErrorDescription: 'Could not save itinerary. Please try again.',
   },
   hi: {
     title: 'आपकी कस्टम यात्रा कार्यक्रम',
-    demo: 'डेमो',
+    saveToDashboard: 'डैशबोर्ड पर सहेजें',
     downloadPDF: 'पीडीएफ डाउनलोड करें',
-    regenerate: 'बदलावों के साथ फिर से बनाएं',
     adjusting: 'समायोजित कर रहा है...',
     liveChecks: 'ट्रिप डैशबोर्ड',
     budgetStatus: 'बजट स्थिति',
@@ -87,6 +90,10 @@ const translations = {
     backToPlan: 'योजना पर वापस जाएं',
     addItem: 'आइटम जोड़ें',
     viewInMap: 'मानचित्र में देखें',
+    saveSuccessTitle: 'यात्रा कार्यक्रम सहेजा गया',
+    saveSuccessDescription: 'आपका यात्रा कार्यक्रम आपके डैशबोर्ड में सहेज लिया गया है।',
+    saveErrorTitle: 'सहेजें विफल',
+    saveErrorDescription: 'यात्रा कार्यक्रम सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
   },
 };
 
@@ -98,20 +105,52 @@ export default function ItineraryPage() {
   const [lang, setLang] = useState<'en' | 'hi'>('en');
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = translations[lang];
 
   useEffect(() => {
-    const storedItinerary = sessionStorage.getItem('itinerary');
+    let storedItinerary: string | null = null;
+    const tripId = searchParams.get('tripId');
+    if (tripId) {
+      const savedItineraries = JSON.parse(localStorage.getItem('savedItineraries') || '[]');
+      const foundItinerary = savedItineraries.find((i: Itinerary) => i.trip.title === tripId);
+      if(foundItinerary) {
+        setItinerary(foundItinerary);
+        return;
+      }
+    }
+    
+    storedItinerary = sessionStorage.getItem('itinerary');
     if (storedItinerary) {
       setItinerary(JSON.parse(storedItinerary));
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (itinerary) {
       sessionStorage.setItem('itinerary', JSON.stringify(itinerary));
     }
   }, [itinerary]);
+  
+  const handleSaveItinerary = () => {
+    if (!itinerary) return;
+    try {
+      const savedItineraries = JSON.parse(localStorage.getItem('savedItineraries') || '[]');
+      const newSavedItineraries = [...savedItineraries.filter((i: Itinerary) => i.trip.title !== itinerary.trip.title), itinerary];
+      localStorage.setItem('savedItineraries', JSON.stringify(newSavedItineraries));
+      toast({
+        title: t.saveSuccessTitle,
+        description: t.saveSuccessDescription,
+      });
+    } catch (error) {
+      console.error('Error saving itinerary:', error);
+      toast({
+        variant: 'destructive',
+        title: t.saveErrorTitle,
+        description: t.saveErrorDescription,
+      });
+    }
+  };
 
   const handlePdfDownload = () => {
     if (!itinerary) return;
@@ -386,6 +425,9 @@ export default function ItineraryPage() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}>
               <Languages />
+            </Button>
+            <Button variant="outline" onClick={handleSaveItinerary}>
+              <Save className="mr-2" /> {t.saveToDashboard}
             </Button>
             <Button onClick={handlePdfDownload}>
               <Download className="mr-2" /> {t.downloadPDF}
