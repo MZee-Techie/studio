@@ -190,8 +190,8 @@ export default function ItineraryPage() {
     
     doc.autoTable({
       body: [
-        ['Total Budget', `${itinerary.trip.currency} ${itinerary.trip.budget.toLocaleString()}`],
-        ['Estimated Cost', `${itinerary.trip.currency} ${itinerary.totals.est.toLocaleString()}`],
+        ['Total Budget', `₹${itinerary.trip.budget.toLocaleString()}`],
+        ['Estimated Cost', `₹${itinerary.totals.est.toLocaleString()}`],
         ['Travelers', `${itinerary.party?.length || 1}`],
       ],
       startY: 35,
@@ -228,7 +228,7 @@ export default function ItineraryPage() {
             ? `${segment.dep} - ${segment.arr}`
             : segment.window?.join(' - ') || 'All Day';
         const name = `${segment.type.charAt(0).toUpperCase() + segment.type.slice(1)}: ${segment.name || `${segment.from} → ${segment.to}`}`;
-        const cost = segment.estCost ? `${itinerary.trip.currency} ${segment.estCost}` : 'Free';
+        const cost = segment.estCost ? `₹${segment.estCost}` : 'Free';
         const details = [
           segment.description,
           segment.rating ? `Rating: ★ ${segment.rating}` : null,
@@ -617,3 +617,5 @@ export default function ItineraryPage() {
     </div>
   );
 }
+
+    

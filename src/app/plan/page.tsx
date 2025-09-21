@@ -64,13 +64,13 @@ const translations = {
     subTitle: "Describe your ideal trip, and let our AI craft the perfect itinerary for you.",
     demo: "Demo",
     describeTrip: "Describe your trip in detail",
-    examplePrompt: "e.g., A 4-day relaxed trip to Jaipur and Udaipur for 2 adults. We love palaces and street food. Our budget is around 40,000 INR. We'll travel by train between cities.",
+    examplePrompt: "e.g., A 4-day relaxed trip to Jaipur and Udaipur for 2 adults. We love palaces and street food. Our budget is around ₹40,000. We'll travel by train between cities.",
     details: "Trip Details",
     startPoint: "Starting From",
     destination: "Main Destination(s)",
     startDate: "Start Date",
     endDate: "End Date",
-    budget: "Budget (INR)",
+    budget: "Budget (₹)",
     party: "Travel Party",
     adults: "Adults",
     kids: "Kids (0-12)",
@@ -93,13 +93,13 @@ const translations = {
     subTitle: "अपनी आदर्श यात्रा का वर्णन करें, और हमारे AI को आपके लिए सही यात्रा कार्यक्रम तैयार करने दें।",
     demo: "डेमो",
     describeTrip: "अपनी यात्रा का विस्तार से वर्णन करें",
-    examplePrompt: "जैसे, 2 वयस्कों के लिए जयपुर और उदयपुर की 4-दिवसीय आरामदायक यात्रा। हमें महल और स्ट्रीट फूड पसंद हैं। हमारा बजट लगभग 40,000 INR है। हम शहरों के बीच ट्रेन से यात्रा करेंगे।",
+    examplePrompt: "जैसे, 2 वयस्कों के लिए जयपुर और उदयपुर की 4-दिवसीय आरामदायक यात्रा। हमें महल और स्ट्रीट फूड पसंद हैं। हमारा बजट लगभग ₹40,000 है। हम शहरों के बीच ट्रेन से यात्रा करेंगे।",
     details: "यात्रा विवरण",
     startPoint: "प्रारंभ बिंदु",
     destination: "मुख्य गंतव्य",
     startDate: "प्रारंभ तिथि",
     endDate: "अंतिम तिथि",
-    budget: "बजट (INR)",
+    budget: "बजट (₹)",
     party: "यात्रा समूह",
     adults: "वयस्क",
     kids: "बच्चे (0-12)",
@@ -413,3 +413,5 @@ export default function PlanPage() {
     </div>
   );
 }
+
+    
