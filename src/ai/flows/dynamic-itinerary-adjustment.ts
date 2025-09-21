@@ -7,15 +7,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import type { Itinerary, AdjustItineraryInput } from '@/lib/types';
-import { AdjustItineraryInputSchema, ItineraryResponseSchema } from '@/lib/types';
-
-
-export async function adjustItinerary(
-  input: AdjustItineraryInput
-): Promise<Itinerary> {
-  return adjustItineraryFlow(input);
-}
+import type {Itinerary, AdjustItineraryInput} from '@/lib/types';
+import {AdjustItineraryInputSchema, ItineraryResponseSchema} from '@/lib/types';
 
 const adjustItineraryPrompt = ai.definePrompt({
   name: 'adjustItineraryPrompt',
@@ -55,3 +48,9 @@ const adjustItineraryFlow = ai.defineFlow(
     return output;
   }
 );
+
+export async function adjustItinerary(
+  input: AdjustItineraryInput
+): Promise<Itinerary> {
+  return await adjustItineraryFlow(input);
+}

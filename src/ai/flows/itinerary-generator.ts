@@ -5,20 +5,15 @@
  * - generateItinerary - A function that generates a trip itinerary from a complex request object.
  */
 
-import { ai } from '@/ai/genkit';
-import type { Itinerary, ItineraryRequest } from '@/lib/types';
-import { ItineraryRequestSchema, ItineraryResponseSchema } from '@/lib/types';
-
-// The main exported function that calls the Genkit flow
-export async function generateItinerary(request: ItineraryRequest): Promise<Itinerary> {
-  return itineraryGeneratorFlow(request);
-}
+import {ai} from '@/ai/genkit';
+import type {Itinerary, ItineraryRequest} from '@/lib/types';
+import {ItineraryRequestSchema, ItineraryResponseSchema} from '@/lib/types';
 
 // Define the Genkit Prompt with the specified system instruction and schemas
 const itineraryPrompt = ai.definePrompt({
   name: 'itineraryGeneratorPrompt',
-  input: { schema: ItineraryRequestSchema },
-  output: { schema: ItineraryResponseSchema },
+  input: {schema: ItineraryRequestSchema},
+  output: {schema: ItineraryResponseSchema},
   prompt: `You are an Indian trip-planning assistant. Your output MUST be a single JSON object that strictly adheres to the provided response schema. Do not include any extra text, commentary, or markdown formatting.
 
 The user's request may involve multiple cities or destinations. Create a logical itinerary that may span across different locations day-by-day.
@@ -42,7 +37,6 @@ Pace: {{{pace}}}
 Must-visit Anchors: {{#each anchors}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}`,
 });
 
-
 // Define the Genkit Flow
 const itineraryGeneratorFlow = ai.defineFlow(
   {
@@ -50,11 +44,20 @@ const itineraryGeneratorFlow = ai.defineFlow(
     inputSchema: ItineraryRequestSchema,
     outputSchema: ItineraryResponseSchema,
   },
-  async (request) => {
-    const { output } = await itineraryPrompt(request);
+  async request => {
+    const {output} = await itineraryPrompt(request);
     if (!output) {
-      throw new Error("AI failed to generate a response that conforms to the schema.");
+      throw new Error(
+        'AI failed to generate a response that conforms to the schema.'
+      );
     }
     return output;
   }
 );
+
+// The main exported function that calls the Genkit flow
+export async function generateItinerary(
+  request: ItineraryRequest
+): Promise<Itinerary> {
+  return await itineraryGeneratorFlow(request);
+}
