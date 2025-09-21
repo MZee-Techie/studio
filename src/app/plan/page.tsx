@@ -196,7 +196,7 @@ export default function PlanPage() {
       if (details.start) form.setValue('start', new Date(details.start));
       if (details.end) form.setValue('end', new Date(details.end));
       if (details.budgetINR) form.setValue('budgetINR', details.budgetINR);
-      if (details.party) form.setValue('party', details.party);
+      if (details.party) form.setValue('party', {adults: details.party.adults || 0, kids: details.party.kids || 0, seniors: details.party.seniors || 0});
       if (details.modes) form.setValue('modes', details.modes.filter(m => modeOptions.some(o => o.id === m)));
       if (details.themes) form.setValue('themes', details.themes.filter(th => themeOptions.some(o => o.id === th)));
       if (details.pace) form.setValue('pace', details.pace);
@@ -218,16 +218,27 @@ export default function PlanPage() {
     setIsLoading(true);
     setItinerary(null);
     try {
+      // Ensure anchors is an array of strings
+      const anchors = Array.isArray(data.anchors) ? data.anchors : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()) : []);
+
       const request: ItineraryRequest = {
         ...data,
+        anchors,
         start: format(data.start, 'yyyy-MM-dd'),
         end: format(data.end, 'yyyy-MM-dd'),
+        party: {
+          adults: Number(data.party.adults) || 0,
+          kids: Number(data.party.kids) || 0,
+          seniors: Number(data.party.seniors) || 0,
+        }
       };
       const result = await generateItinerary(request);
-      // Basic validation for the response schema
-      if (result && result.trip && result.days && result.totals) {
+      
+      // Stronger validation for the response schema
+      if (result && result.trip && Array.isArray(result.days) && result.totals && Array.isArray(result.packingList) && Array.isArray(result.checklist)) {
         setItinerary(result);
       } else {
+        console.error("Invalid itinerary format received from AI:", result);
         throw new Error("Invalid itinerary format");
       }
     } catch (error) {
@@ -235,7 +246,7 @@ export default function PlanPage() {
       toast({
         variant: "destructive",
         title: t.errorToastTitle,
-        description: t.errorToastDescription,
+        description: (error as Error).message || t.errorToastDescription,
       });
     } finally {
       setIsLoading(false);

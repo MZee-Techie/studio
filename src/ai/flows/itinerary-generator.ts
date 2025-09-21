@@ -58,7 +58,7 @@ const ItineraryResponseSchema = z.object({
           toPlaceId: z.string().optional(),
           dep: z.string().optional(),
           arr: z.string().optional(),
-          window: z.tuple([z.string(), z.string()]).optional(),
+          window: z.array(z.string()).length(2).optional(),
           openHours: z.string().optional(),
           rating: z.number().optional(),
           estCost: z.number().optional(),
@@ -92,19 +92,26 @@ const itineraryPrompt = ai.definePrompt({
   name: 'itineraryGeneratorPrompt',
   input: { schema: ItineraryRequestSchema },
   output: { schema: ItineraryResponseSchema },
-  prompt: `You are an Indian trip-planning assistant. Respect the given dates, INR budget, ages, modes, themes, pace, and anchors. Build a feasible day-by-day plan with realistic durations, opening hours, ratings if known, and travel legs. Add risk tags from [‘rain’, ‘heat’, ‘crowd’, ‘late-night’, ‘closure’]. Include a packingList and a checklist. Return ONE JSON object exactly matching the response schema. No extra text.
+  prompt: `You are an Indian trip-planning assistant. Your output MUST be a single JSON object that strictly adheres to the provided response schema. Do not include any extra text, commentary, or markdown formatting.
+
+You must respect all constraints from the user's request: dates, INR budget, party composition (ages), transport modes, travel themes, pace, and must-visit anchors.
+
+Build a feasible day-by-day plan. Ensure durations, opening hours, ratings (if known), and travel legs are realistic.
+Assign risk tags for each segment where applicable, choosing from: 'rain', 'heat', 'crowd', 'late-night', 'closure'.
+Include a practical 'packingList' and a pre-travel 'checklist'.
 
 User Request:
 Natural Language Prompt: {{{nl}}}
 City: {{{city}}}
 Dates: {{{start}}} to {{{end}}}
 Budget: {{{budgetINR}}} INR
-Party: {{party.adults}} adults, {{party.kids}} kids, {{party.seniors}} seniors
+Party: Adults: {{party.adults}}, Kids: {{party.kids}}, Seniors: {{party.seniors}}
 Transport Modes: {{#each modes}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 Themes: {{#each themes}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 Pace: {{{pace}}}
 Must-visit Anchors: {{#each anchors}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}`,
 });
+
 
 // Define the Genkit Flow
 const itineraryGeneratorFlow = ai.defineFlow(
@@ -116,7 +123,7 @@ const itineraryGeneratorFlow = ai.defineFlow(
   async (request) => {
     const { output } = await itineraryPrompt(request);
     if (!output) {
-      throw new Error("AI failed to generate a response.");
+      throw new Error("AI failed to generate a response that conforms to the schema.");
     }
     return output;
   }
