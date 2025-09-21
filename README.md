@@ -32,6 +32,14 @@ Traditional travel planning is often a fragmented and time-consuming process. It
 
 ---
 
+### 🔴 Live Demo
+
+See the application live in action!
+
+[![Open Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=firebase)](https://studio--studio-6944501012-4baeb.us-central1.hosted.app/)
+
+---
+
 ### 🛠️ Tech Flow & Architecture
 
 EaseMyJournAI is built on a modern, serverless technology stack designed for performance, scalability, and rapid development.
