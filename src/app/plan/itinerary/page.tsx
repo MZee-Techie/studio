@@ -617,5 +617,3 @@ export default function ItineraryPage() {
     </div>
   );
 }
-
-    
