@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import { Itinerary, ItineraryRequest } from '@/ai/flows/itinerary-generator';
+import { extractTripDetails } from '@/ai/flows/extract-trip-details';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from '@/components/ui/badge';
@@ -102,6 +103,7 @@ const translations = {
     validationError: "Please fill out City, Dates, and Budget.",
     errorToastTitle: "Generation Failed",
     errorToastDescription: "The itinerary format was invalid. Please try regenerating.",
+    parsingPrompt: "Extracting details...",
     emptyState: "Your generated itinerary will appear here. Describe your trip and click 'Generate' to start!",
   },
   hi: {
@@ -143,6 +145,7 @@ const translations = {
     validationError: "कृपया शहर, तिथियां और बजट भरें।",
     errorToastTitle: "निर्माण विफल",
     errorToastDescription: "यात्रा कार्यक्रम का प्रारूप अमान्य था। कृपया फिर से बनाने का प्रयास करें।",
+    parsingPrompt: "विवरण निकाले जा रहे हैं...",
     emptyState: "आपका बनाया गया यात्रा कार्यक्रम यहां दिखाई देगा। अपनी यात्रा का वर्णन करें और शुरू करने के लिए 'बनाएं' पर क्लिक करें!",
   }
 };
@@ -162,6 +165,7 @@ const Chip = ({ label, icon, isSelected, ...props }: { label: string, icon: Reac
 
 export default function PlanPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [lang, setLang] = useState<'en' | 'hi'>('en');
   const { toast } = useToast();
@@ -181,8 +185,38 @@ export default function PlanPage() {
     },
   });
 
+  const handlePromptBlur = async () => {
+    const nl = form.getValues('nl');
+    if (nl.length < 10) return;
+
+    setIsParsing(true);
+    try {
+      const details = await extractTripDetails({ nl });
+      if (details.city) form.setValue('city', details.city);
+      if (details.start) form.setValue('start', new Date(details.start));
+      if (details.end) form.setValue('end', new Date(details.end));
+      if (details.budgetINR) form.setValue('budgetINR', details.budgetINR);
+      if (details.party) form.setValue('party', details.party);
+      if (details.modes) form.setValue('modes', details.modes.filter(m => modeOptions.some(o => o.id === m)));
+      if (details.themes) form.setValue('themes', details.themes.filter(th => themeOptions.some(o => o.id === th)));
+      if (details.pace) form.setValue('pace', details.pace);
+      if (details.anchors) form.setValue('anchors', details.anchors);
+    } catch (error) {
+      console.error("Error extracting details:", error);
+      toast({
+        variant: "destructive",
+        title: "Parsing Error",
+        description: "Could not extract details from the prompt. Please fill the form manually.",
+      });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    setItinerary(null);
     try {
       const request: ItineraryRequest = {
         ...data,
@@ -237,7 +271,7 @@ export default function PlanPage() {
         icsContent += 'BEGIN:VEVENT\n';
         icsContent += `DTSTART:${dtstart}\n`;
         icsContent += `DTEND:${dtend}\n`;
-        icsContent += `SUMMARY:${summary}\n`;
+        icsContent += `SUMMARY:${summary || 'Event'}\n`;
         if (segment.to) icsContent += `LOCATION:${segment.to}\n`;
         icsContent += 'END:VEVENT\n';
       });
@@ -332,7 +366,10 @@ export default function PlanPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Textarea {...field} rows={5} />
+                          <div className="relative">
+                            <Textarea {...field} rows={5} onBlur={handlePromptBlur} />
+                            {isParsing && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="animate-spin mr-2"/> {t.parsingPrompt}</div>}
+                          </div>
                         </FormControl>
                         <FormMessage />
                         <p className="text-xs text-muted-foreground pt-2">{t.combineNote}</p>
@@ -362,9 +399,9 @@ export default function PlanPage() {
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
-                              <Button variant={"outline"} className={cn(!field.value && "text-muted-foreground")}>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
                                 {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -381,9 +418,9 @@ export default function PlanPage() {
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
-                              <Button variant={"outline"} className={cn(!field.value && "text-muted-foreground")}>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
                                 {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -475,7 +512,7 @@ export default function PlanPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.pace}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select pace" />
@@ -493,7 +530,7 @@ export default function PlanPage() {
                   <FormField name="anchors" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t.anchors}</FormLabel>
-                      <FormControl><Input {...field} placeholder={t.anchorsPlaceholder} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} /></FormControl>
+                      <FormControl><Input value={Array.isArray(field.value) ? field.value.join(', ') : ''} placeholder={t.anchorsPlaceholder} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} /></FormControl>
                     </FormItem>
                   )} />
 
@@ -501,7 +538,7 @@ export default function PlanPage() {
               </Card>
 
               <div className="flex flex-col gap-2">
-                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                 <Button type="submit" size="lg" className="w-full" disabled={isLoading || isParsing}>
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
                     {isLoading ? t.generating : (itinerary ? t.regenerate : t.generate)}
                   </Button>
@@ -531,24 +568,26 @@ export default function PlanPage() {
             )}
 
             {!isLoading && itinerary && (
-              <div className="flex flex-col-reverse lg:flex-row gap-8">
-                <Tabs defaultValue="day-0" className="w-full">
-                  <TabsList>
+              <div className="flex flex-col-reverse lg:flex-col lg:flex-row gap-8">
+                <div className="flex-grow">
+                  <Tabs defaultValue="day-0" className="w-full">
+                    <TabsList>
+                      {itinerary.days.map((day, index) => (
+                        <TabsTrigger key={index} value={`day-${index}`}>{t.day} {index + 1}</TabsTrigger>
+                      ))}
+                    </TabsList>
                     {itinerary.days.map((day, index) => (
-                      <TabsTrigger key={index} value={`day-${index}`}>{t.day} {index + 1}</TabsTrigger>
-                    ))}
-                  </TabsList>
-                  {itinerary.days.map((day, index) => (
-                    <TabsContent key={index} value={`day-${index}`}>
-                      <div className="relative pt-4">
-                        <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-border -z-10"></div>
-                        <div className="space-y-6">
-                          {day.segments.map((segment, segIndex) => renderSegmentCard(segment, day, segIndex))}
+                      <TabsContent key={index} value={`day-${index}`}>
+                        <div className="relative pt-4">
+                          <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-border -z-10"></div>
+                          <div className="space-y-6">
+                            {day.segments.map((segment, segIndex) => renderSegmentCard(segment, day, segIndex))}
+                          </div>
                         </div>
-                      </div>
-                    </TabsContent>
-                  ))}
-                </Tabs>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </div>
 
                 <aside className="lg:w-80 lg:shrink-0 space-y-6">
                   <Card>

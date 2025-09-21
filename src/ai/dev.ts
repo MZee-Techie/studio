@@ -7,3 +7,6 @@ import '@/ai/flows/dynamic-itinerary-adjustment.ts';
 
 // Add the new comprehensive itinerary generator flow
 import '@/ai/flows/itinerary-generator.ts';
+
+// Add the new flow for extracting details from a prompt
+import '@/ai/flows/extract-trip-details.ts';
