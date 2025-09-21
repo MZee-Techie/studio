@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag } from 'lucide-react';
+import { CalendarIcon, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import type { ItineraryRequest } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,7 @@ const translations = {
     demo: "डेमो",
     describeTrip: "अपनी यात्रा का वर्णन करें",
     examplePrompt: "जैसे, 2 दिन की यात्रा। दिन 1 गोवा में समुद्र तट पर घूमना। दिन 2 दांदेली में वाटर स्पोर्ट्स के लिए।",
-    details: "अपनी यात्रा की योजना बनाएं",
+    details: " अपनी यात्रा की योजना बनाएं",
     startPoint: "प्रारंभ बिंदु",
     destination: "गंतव्य",
     startDate: "प्रारंभ तिथि",
@@ -156,7 +156,9 @@ export default function PlanPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      const anchors = Array.isArray(data.anchors) ? data.anchors : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()) : []);
+      const anchors = Array.isArray(data.anchors) 
+        ? data.anchors.filter(a => a.trim() !== '') 
+        : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()).filter(s => s !== '') : []);
 
       const request: ItineraryRequest = {
         ...data,
