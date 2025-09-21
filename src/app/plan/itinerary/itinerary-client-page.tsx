@@ -163,18 +163,19 @@ export default function ItineraryClientPage() {
 
   const handlePdfDownload = () => {
     if (!itinerary) return;
-    const doc = new jsPDF() as jsPDFWithAutoTable;
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' }) as jsPDFWithAutoTable;
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
 
-    doc.setFont('Lora', 'bold');
-    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
     doc.setTextColor(41, 51, 61);
     doc.text(itinerary.trip.title, pageWidth / 2, 20, { align: 'center' });
 
-    doc.setFont('Inter', 'normal');
-    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
     doc.setTextColor(100, 116, 139);
     doc.text(
       `${itinerary.trip.cities.join(', ')} | ${format(new Date(itinerary.trip.start), 'do MMMM yyyy')} - ${format(
@@ -188,13 +189,13 @@ export default function ItineraryClientPage() {
     
     doc.autoTable({
       body: [
-        ['Total Budget', `₹${itinerary.trip.budget.toLocaleString()}`],
-        ['Estimated Cost', `₹${itinerary.totals.est.toLocaleString()}`],
+        ['Total Budget', `INR ${itinerary.trip.budget.toLocaleString()}`],
+        ['Estimated Cost', `INR ${itinerary.totals.est.toLocaleString()}`],
         ['Travelers', `${itinerary.party?.length || 1}`],
       ],
       startY: 35,
       theme: 'plain',
-      styles: { fontSize: 10 },
+      styles: { fontSize: 9, cellPadding: 1 },
       columnStyles: {
         0: { fontStyle: 'bold', halign: 'right' },
         1: { halign: 'left' }
@@ -210,15 +211,15 @@ export default function ItineraryClientPage() {
         doc.addPage();
         y = margin;
       }
-      doc.setFont('Lora', 'bold');
-      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
       doc.setTextColor(41, 51, 61);
       doc.text(`Day ${index + 1}: ${day.city}`, margin, y);
-      doc.setFont('Inter', 'normal');
-      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       doc.setTextColor(100, 116, 139);
       doc.text(format(new Date(day.date), 'EEEE, MMMM do'), margin, y + 5);
-      y += 15;
+      y += 12;
 
       const segmentsBody = day.segments.map(segment => {
         const time =
@@ -226,7 +227,7 @@ export default function ItineraryClientPage() {
             ? `${segment.dep} - ${segment.arr}`
             : segment.window?.join(' - ') || 'All Day';
         const name = `${segment.type.charAt(0).toUpperCase() + segment.type.slice(1)}: ${segment.name || `${segment.from} → ${segment.to}`}`;
-        const cost = segment.estCost ? `₹${segment.estCost.toLocaleString()}` : 'Free';
+        const cost = segment.estCost ? `INR ${segment.estCost.toLocaleString()}` : 'Free';
         const details = [
           segment.description,
           segment.rating ? `Rating: ★ ${segment.rating}` : null,
@@ -240,9 +241,17 @@ export default function ItineraryClientPage() {
         head: [['Time', 'Activity / Leg', 'Est. Cost']],
         body: segmentsBody,
         theme: 'striped',
-        headStyles: { fillColor: [33, 150, 243] }, // Primary color
+        headStyles: { fillColor: [33, 150, 243], fontSize: 10 },
         styles: {
-            valign: 'middle'
+            valign: 'middle',
+            fontSize: 9,
+            cellPadding: 2,
+            overflow: 'linebreak'
+        },
+        columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: contentWidth - 55 },
+            2: { cellWidth: 30, halign: 'right' }
         },
         didDrawPage: data => {
           y = data.cursor?.y || margin;
@@ -253,8 +262,8 @@ export default function ItineraryClientPage() {
 
     if (itinerary.packingList.length > 0 || itinerary.checklist.length > 0) {
       if (y > 260) { doc.addPage(); y = margin; }
-      doc.setFont('Lora', 'bold');
-      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
       doc.text('Pre-Travel Preparation', margin, y);
       y += 8;
 
@@ -267,7 +276,8 @@ export default function ItineraryClientPage() {
           startY: y,
           body: listBody,
           theme: 'grid',
-          columnStyles: { 0: { fontStyle: 'bold' } },
+          styles: { fontSize: 9, overflow: 'linebreak' },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 }, 1: { cellWidth: contentWidth - 40 } },
       });
     }
 
@@ -311,8 +321,6 @@ export default function ItineraryClientPage() {
     });
     setCustomChecklistItem('');
   };
-
-
 
   const handleRemoveChecklistItem = (itemToRemove: string) => {
     if (!itinerary) return;
@@ -615,3 +623,5 @@ export default function ItineraryClientPage() {
     </div>
   );
 }
+
+    
