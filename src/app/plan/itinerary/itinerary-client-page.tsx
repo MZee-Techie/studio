@@ -226,7 +226,7 @@ export default function ItineraryClientPage() {
             ? `${segment.dep} - ${segment.arr}`
             : segment.window?.join(' - ') || 'All Day';
         const name = `${segment.type.charAt(0).toUpperCase() + segment.type.slice(1)}: ${segment.name || `${segment.from} → ${segment.to}`}`;
-        const cost = segment.estCost ? `₹${segment.estCost}` : 'Free';
+        const cost = segment.estCost ? `₹${segment.estCost.toLocaleString()}` : 'Free';
         const details = [
           segment.description,
           segment.rating ? `Rating: ★ ${segment.rating}` : null,
@@ -401,7 +401,7 @@ export default function ItineraryClientPage() {
                   <h4 className="font-bold text-lg">{segment.name || `${segment.from} → ${segment.to}`}</h4>
                 </div>
                 <div className="text-right shrink-0 ml-4">
-                  <p className="font-semibold text-lg">{segment.estCost ? `₹${segment.estCost}` : ''}</p>
+                  <p className="font-semibold text-lg">{segment.estCost ? `₹${segment.estCost.toLocaleString()}` : ''}</p>
                   <p className="text-sm text-muted-foreground">
                     {segment.dep && segment.arr ? `${segment.dep} - ${segment.arr}` : segment.window?.join(' - ')}
                   </p>
