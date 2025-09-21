@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip } from 'lucide-react';
+import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip, Wand2 } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import { Itinerary, ItineraryRequest } from '@/ai/flows/itinerary-generator';
 import { extractTripDetails } from '@/ai/flows/extract-trip-details';
@@ -72,7 +72,7 @@ const translations = {
     downloadIcs: "ICS",
     describeTrip: "Describe your trip in plain English…",
     examplePrompt: "e.g., 4 relaxed days in Jaipur for 2 adults + 1 kid, ₹30k total, prefer trains and street food, must visit Hawa Mahal.",
-    combineNote: "We’ll combine this with the details below.",
+    fillForm: "Fill Form from Prompt",
     details: "Details",
     city: "City",
     startDate: "Start Date",
@@ -114,7 +114,7 @@ const translations = {
     downloadIcs: "ICS",
     describeTrip: "अपनी यात्रा का सरल अंग्रेजी में वर्णन करें...",
     examplePrompt: "जैसे, 2 वयस्कों + 1 बच्चे के लिए जयपुर में 4 आरामदायक दिन, कुल ₹30k, ट्रेनों और स्ट्रीट फूड को प्राथमिकता दें, हवा महल जरूर जाएं।",
-    combineNote: "हम इसे नीचे दिए गए विवरणों के साथ जोड़ेंगे।",
+    fillForm: "प्रॉम्प्ट से फ़ॉर्म भरें",
     details: "विवरण",
     city: "शहर",
     startDate: "प्रारंभ तिथि",
@@ -185,7 +185,7 @@ export default function PlanPage() {
     },
   });
 
-  const handlePromptBlur = async () => {
+  const handlePromptParse = async () => {
     const nl = form.getValues('nl');
     if (nl.length < 10) return;
 
@@ -360,22 +360,24 @@ export default function PlanPage() {
                   <CardDescription>{t.examplePrompt}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="nl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <div className="relative">
-                            <Textarea {...field} rows={5} onBlur={handlePromptBlur} />
-                            {isParsing && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="animate-spin mr-2"/> {t.parsingPrompt}</div>}
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-xs text-muted-foreground pt-2">{t.combineNote}</p>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="nl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea {...field} rows={5} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="button" variant="outline" className="w-full" onClick={handlePromptParse} disabled={isParsing}>
+                      {isParsing ? <Loader2 className="animate-spin mr-2" /> : <Wand2 />}
+                      {isParsing ? t.parsingPrompt : t.fillForm}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
