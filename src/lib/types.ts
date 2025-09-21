@@ -46,7 +46,8 @@ export const ItineraryResponseSchema = z.object({
         z.object({
           type: z.enum(['transport', 'activity', 'meal', 'free']),
           name: z.string().optional(),
-          placeId: z.string().optional(),
+          description: z.string().describe('A brief, engaging description of the place or activity, highlighting what makes it special.').optional(),
+          placeId: z.string().describe('The Google Maps Place ID, if available.').optional(),
           mode: z.string().describe('flight|train|bus|cab|metro|bike|walk').optional(),
           from: z.string().optional(),
           to: z.string().optional(),

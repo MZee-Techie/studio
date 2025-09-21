@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,9 @@ import {
   Hotel,
   Utensils,
   Landmark,
+  ChevronDown,
+  MapPin,
+  Star,
 } from 'lucide-react';
 import type { Itinerary } from '@/lib/types';
 import { adjustItinerary } from '@/ai/flows/dynamic-itinerary-adjustment';
@@ -31,6 +34,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -60,6 +64,7 @@ const translations = {
     emptyState: 'No itinerary found. Please go back to the plan page to generate one.',
     backToPlan: 'Back to Plan',
     addItem: 'Add item',
+    viewInMap: 'View in Maps',
   },
   hi: {
     title: 'आपकी कस्टम यात्रा कार्यक्रम',
@@ -81,6 +86,7 @@ const translations = {
     emptyState: 'कोई यात्रा कार्यक्रम नहीं मिला। कृपया एक बनाने के लिए योजना पृष्ठ पर वापस जाएं।',
     backToPlan: 'योजना पर वापस जाएं',
     addItem: 'आइटम जोड़ें',
+    viewInMap: 'मानचित्र में देखें',
   },
 };
 
@@ -174,6 +180,7 @@ export default function ItineraryPage() {
         const name = `${segment.type.charAt(0).toUpperCase() + segment.type.slice(1)}: ${segment.name || `${segment.from} → ${segment.to}`}`;
         const cost = segment.estCost ? `${itinerary.trip.currency} ${segment.estCost}` : 'Free';
         const details = [
+          segment.description,
           segment.rating ? `Rating: ★ ${segment.rating}` : null,
           segment.risk?.length ? `Risks: ${segment.risk.join(', ')}` : null,
         ].filter(Boolean).join('\n');
@@ -284,35 +291,63 @@ export default function ItineraryPage() {
     };
 
     return (
-      <div key={segIndex} className="p-4 rounded-lg bg-card border shadow-sm transition-transform hover:shadow-md relative ml-12">
+      <div key={segIndex} className="relative ml-12">
         <div className="absolute -left-12 top-4 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
             {typeIcons[segment.type as keyof typeof typeIcons]}
         </div>
-        <div className="flex justify-between items-start">
-          <div>
-            <Badge variant="secondary" className="capitalize mb-2">{segment.type}</Badge>
-            <h4 className="font-bold text-lg">{segment.name || `${segment.from} → ${segment.to}`}</h4>
-          </div>
-          <div className="text-right shrink-0 ml-4">
-            <p className="font-semibold text-lg">{segment.estCost ? `₹${segment.estCost}` : ''}</p>
-            <p className="text-sm text-muted-foreground">
-              {segment.dep && segment.arr ? `${segment.dep} - ${segment.arr}` : segment.window?.join(' - ')}
-            </p>
-          </div>
-        </div>
-
-        {(segment.risk?.length > 0 || segment.rating) && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t">
-            <div className="flex items-center gap-2">
-              {segment.risk?.map((r: keyof typeof riskIcons, i: number) => (
-                <Badge key={i} variant="outline" className="flex items-center gap-1">
-                  {riskIcons[r]} {r}
-                </Badge>
-              ))}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <div className="p-4 rounded-lg bg-card border shadow-sm transition-all hover:shadow-md cursor-pointer group">
+              <div className="flex justify-between items-start">
+                <div>
+                  <Badge variant="secondary" className="capitalize mb-2">{segment.type}</Badge>
+                  <h4 className="font-bold text-lg">{segment.name || `${segment.from} → ${segment.to}`}</h4>
+                </div>
+                <div className="text-right shrink-0 ml-4">
+                  <p className="font-semibold text-lg">{segment.estCost ? `₹${segment.estCost}` : ''}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {segment.dep && segment.arr ? `${segment.dep} - ${segment.arr}` : segment.window?.join(' - ')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end mt-2">
+                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-300 group-data-[state=open]:rotate-180" />
+              </div>
             </div>
-            {segment.rating && <Badge variant="default" className="bg-amber-400 hover:bg-amber-500 text-black">{`★ ${segment.rating}`}</Badge>}
-          </div>
-        )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+             <div className="p-4 rounded-b-lg bg-card border-x border-b -mt-2">
+                {segment.description && <p className="text-muted-foreground mb-4">{segment.description}</p>}
+                
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {segment.rating && (
+                      <Badge variant="default" className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-500 text-black">
+                        <Star className="w-4 h-4" /> {segment.rating}
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {segment.risk?.map((r: keyof typeof riskIcons, i: number) => (
+                        <Badge key={i} variant="outline" className="flex items-center gap-1 capitalize">
+                          {riskIcons[r]} {r}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  {segment.placeId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query_place_id=${segment.placeId}`, '_blank')}
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      {t.viewInMap}
+                    </Button>
+                  )}
+                </div>
+             </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     );
   };
@@ -368,7 +403,7 @@ export default function ItineraryPage() {
                 <TabsContent key={index} value={`day-${index}`}>
                   <div className="relative pt-8 pb-4 pl-4">
                     <div className="absolute left-[2.37rem] top-8 bottom-4 w-0.5 bg-border rounded-full -z-10"></div>
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       {day.segments.map((segment, segIndex) => renderSegmentCard(segment, segIndex))}
                     </div>
                   </div>

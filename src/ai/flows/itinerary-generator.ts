@@ -20,7 +20,8 @@ The user's request may involve multiple cities or destinations. Create a logical
 You must respect all constraints from the user's request: dates, INR budget, party composition (ages), transport modes, travel themes, pace, and must-visit anchors.
 
 For each day, specify the city for that day's plan.
-Build a feasible day-by-day plan. Ensure durations, opening hours, ratings (if known), and travel legs are realistic.
+Build a feasible day-by-day plan. For each segment, provide a brief, engaging 'description' of the place or activity.
+Include realistic durations, opening hours, Google ratings, and Google Place IDs where available.
 Assign risk tags for each segment where applicable, choosing from: 'rain', 'heat', 'crowd', 'late-night', 'closure'.
 Include a practical 'packingList' and a pre-travel 'checklist'.
 
