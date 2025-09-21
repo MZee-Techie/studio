@@ -19,6 +19,10 @@ import {
   Grip,
   PlusCircle,
   Trash2,
+  Ship,
+  Hotel,
+  Utensils,
+  Landmark,
 } from 'lucide-react';
 import type { Itinerary } from '@/lib/types';
 import { adjustItinerary } from '@/ai/flows/dynamic-itinerary-adjustment';
@@ -31,7 +35,6 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 
-// Extend jsPDF with autoTable
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
@@ -106,112 +109,116 @@ export default function ItineraryPage() {
 
   const handlePdfDownload = () => {
     if (!itinerary) return;
+    const doc = new jsPDF() as jsPDFWithAutoTable;
 
-    const pdf = new jsPDF() as jsPDFWithAutoTable;
+    const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
 
-    // Title
-    pdf.setFontSize(22);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(itinerary.trip.title, pdf.internal.pageSize.getWidth() / 2, margin, { align: 'center' });
+    doc.setFont('Lora', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(41, 51, 61);
+    doc.text(itinerary.trip.title, pageWidth / 2, 20, { align: 'center' });
 
-    // Subtitle
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(
-      `${itinerary.trip.cities.join(', ')} | ${format(new Date(itinerary.trip.start), 'PPP')} - ${format(
+    doc.setFont('Inter', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `${itinerary.trip.cities.join(', ')} | ${format(new Date(itinerary.trip.start), 'do MMMM yyyy')} - ${format(
         new Date(itinerary.trip.end),
-        'PPP'
+        'do MMMM yyyy'
       )}`,
-      pdf.internal.pageSize.getWidth() / 2,
-      margin + 8,
+      pageWidth / 2,
+      28,
       { align: 'center' }
     );
-    pdf.text(
-      `Budget: ${itinerary.trip.currency} ${itinerary.totals.est.toLocaleString()} / ${itinerary.trip.budget.toLocaleString()}`,
-      pdf.internal.pageSize.getWidth() / 2,
-      margin + 14,
-      { align: 'center' }
-    );
+    
+    doc.autoTable({
+      body: [
+        ['Total Budget', `${itinerary.trip.currency} ${itinerary.trip.budget.toLocaleString()}`],
+        ['Estimated Cost', `${itinerary.trip.currency} ${itinerary.totals.est.toLocaleString()}`],
+        ['Travelers', `${itinerary.party?.length || 1}`],
+      ],
+      startY: 35,
+      theme: 'plain',
+      styles: { fontSize: 10 },
+      columnStyles: {
+        0: { fontStyle: 'bold', halign: 'right' },
+        1: { halign: 'left' }
+      },
+      tableWidth: 80,
+      margin: { left: pageWidth/2 - 40 },
+    });
 
-    let y = margin + 30;
+    let y = (doc as any).lastAutoTable.finalY + 15;
 
     itinerary.days.forEach((day, index) => {
       if (y > 250) {
-        pdf.addPage();
+        doc.addPage();
         y = margin;
       }
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`Day ${index + 1}: ${day.city} (${format(new Date(day.date), 'EEE, MMM d')})`, margin, y);
-      y += 8;
+      doc.setFont('Lora', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(41, 51, 61);
+      doc.text(`Day ${index + 1}: ${day.city}`, margin, y);
+      doc.setFont('Inter', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(format(new Date(day.date), 'EEEE, MMMM do'), margin, y + 5);
+      y += 15;
 
       const segmentsBody = day.segments.map(segment => {
         const time =
           segment.type === 'transport'
             ? `${segment.dep} - ${segment.arr}`
-            : segment.window?.join(' - ') || 'N/A';
-        const name = segment.name || `${segment.from} → ${segment.to}`;
+            : segment.window?.join(' - ') || 'All Day';
+        const name = `${segment.type.charAt(0).toUpperCase() + segment.type.slice(1)}: ${segment.name || `${segment.from} → ${segment.to}`}`;
         const cost = segment.estCost ? `${itinerary.trip.currency} ${segment.estCost}` : 'Free';
-        return [time, name, cost];
+        const details = [
+          segment.rating ? `Rating: ★ ${segment.rating}` : null,
+          segment.risk?.length ? `Risks: ${segment.risk.join(', ')}` : null,
+        ].filter(Boolean).join('\n');
+        return [time, `${name}\n${details}`, cost];
       });
 
-      pdf.autoTable({
+      doc.autoTable({
         startY: y,
         head: [['Time', 'Activity / Leg', 'Est. Cost']],
         body: segmentsBody,
         theme: 'striped',
-        headStyles: { fillColor: [39, 100, 50] }, // Primary color
+        headStyles: { fillColor: [33, 150, 243] }, // Primary color
+        styles: {
+            valign: 'middle'
+        },
         didDrawPage: data => {
           y = data.cursor?.y || margin;
         },
       });
-      y = (pdf as any).lastAutoTable.finalY + 10;
+      y = (doc as any).lastAutoTable.finalY + 10;
     });
 
-    // Add Checklists
     if (itinerary.packingList.length > 0 || itinerary.checklist.length > 0) {
-      if (y > 250) {
-        pdf.addPage();
-        y = margin;
-      }
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Pre-Travel Preparation', margin, y);
+      if (y > 260) { doc.addPage(); y = margin; }
+      doc.setFont('Lora', 'bold');
+      doc.setFontSize(14);
+      doc.text('Pre-Travel Preparation', margin, y);
       y += 8;
 
-      if (itinerary.packingList.length > 0) {
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Packing List', margin, y);
-        y += 6;
-        pdf.setFont('helvetica', 'normal');
-        itinerary.packingList.forEach(item => {
-          pdf.text(`- ${item}`, margin + 5, y);
-          y += 6;
-        });
-      }
-
-      if (itinerary.checklist.length > 0) {
-        if (y > 260) {
-          pdf.addPage();
-          y = margin;
-        }
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Checklist', margin, y);
-        y += 6;
-        pdf.setFont('helvetica', 'normal');
-        itinerary.checklist.forEach(item => {
-          pdf.text(`- ${item}`, margin + 5, y);
-          y += 6;
-        });
-      }
+      const listBody = [
+          ['Packing List', itinerary.packingList.map(item => `- ${item}`).join('\n')],
+          ['Checklist', itinerary.checklist.map(item => `- ${item}`).join('\n')],
+      ];
+      
+      doc.autoTable({
+          startY: y,
+          body: listBody,
+          theme: 'grid',
+          columnStyles: { 0: { fontStyle: 'bold' } },
+      });
     }
 
-    pdf.save(`Itinerary-${itinerary.trip.title.replace(/\s+/g, '-')}.pdf`);
+    doc.save(`Itinerary-${itinerary.trip.title.replace(/\s+/g, '-')}.pdf`);
   };
-
+  
   const handleAdjustItinerary = async () => {
     if (!itinerary || !modificationPrompt) return;
 
@@ -224,7 +231,7 @@ export default function ItineraryPage() {
 
       if (result && result.trip && result.trip.cities && Array.isArray(result.days) && result.totals) {
         setItinerary(result);
-        setModificationPrompt(''); // Clear prompt on success
+        setModificationPrompt('');
       } else {
         console.error('Invalid adjusted itinerary format received from AI:', result);
         throw new Error('Invalid itinerary format');
@@ -250,6 +257,8 @@ export default function ItineraryPage() {
     setCustomChecklistItem('');
   };
 
+
+
   const handleRemoveChecklistItem = (itemToRemove: string) => {
     if (!itinerary) return;
     setItinerary({
@@ -259,6 +268,13 @@ export default function ItineraryPage() {
   };
 
   const renderSegmentCard = (segment: any, segIndex: number) => {
+    const typeIcons = {
+        transport: <Ship className="w-5 h-5 text-primary" />,
+        activity: <Landmark className="w-5 h-5 text-primary" />,
+        meal: <Utensils className="w-5 h-5 text-primary" />,
+        free: <Hotel className="w-5 h-5 text-primary" />,
+    };
+
     const riskIcons = {
       rain: <CloudRain className="w-4 h-4 text-blue-500" />,
       heat: <Sun className="w-4 h-4 text-orange-500" />,
@@ -268,12 +284,13 @@ export default function ItineraryPage() {
     };
 
     return (
-      <div key={segIndex} className="p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative ml-8">
+      <div key={segIndex} className="p-4 rounded-lg bg-card border shadow-sm transition-transform hover:shadow-md relative ml-12">
+        <div className="absolute -left-12 top-4 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+            {typeIcons[segment.type as keyof typeof typeIcons]}
+        </div>
         <div className="flex justify-between items-start">
           <div>
-            <Badge variant="secondary" className="capitalize mb-2">
-              {segment.type}
-            </Badge>
+            <Badge variant="secondary" className="capitalize mb-2">{segment.type}</Badge>
             <h4 className="font-bold text-lg">{segment.name || `${segment.from} → ${segment.to}`}</h4>
           </div>
           <div className="text-right shrink-0 ml-4">
@@ -293,17 +310,17 @@ export default function ItineraryPage() {
                 </Badge>
               ))}
             </div>
-            {segment.rating && <Badge>{`★ ${segment.rating}`}</Badge>}
+            {segment.rating && <Badge variant="default" className="bg-amber-400 hover:bg-amber-500 text-black">{`★ ${segment.rating}`}</Badge>}
           </div>
         )}
       </div>
     );
   };
-
+  
   if (!itinerary) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background text-center p-8">
-        <Card className="max-w-md w-full">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-background text-center p-8">
+        <Card className="max-w-md w-full shadow-lg">
           <CardHeader>
             <CardTitle>{t.emptyState}</CardTitle>
           </CardHeader>
@@ -316,17 +333,20 @@ export default function ItineraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <h1 className="text-2xl font-bold font-headline">
-            {itinerary.trip.title} <Badge variant="outline">{t.demo}</Badge>
-          </h1>
+    <div className="min-h-screen bg-secondary/50">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm shadow-sm">
+        <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
+          <div>
+            <h1 className="text-3xl font-bold font-headline">
+              {itinerary.trip.title}
+            </h1>
+            <p className="text-muted-foreground">{itinerary.trip.cities.join(', ')}</p>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}>
               <Languages />
             </Button>
-            <Button variant="outline" onClick={handlePdfDownload}>
+            <Button onClick={handlePdfDownload}>
               <Download className="mr-2" /> {t.downloadPDF}
             </Button>
           </div>
@@ -337,18 +357,18 @@ export default function ItineraryPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-grow">
             <Tabs defaultValue="day-0" className="w-full">
-              <TabsList>
+              <TabsList className="bg-background shadow-inner">
                 {itinerary.days.map((day, index) => (
-                  <TabsTrigger key={index} value={`day-${index}`}>
-                    {t.day} {index + 1}: {day.city}
+                  <TabsTrigger key={index} value={`day-${index}`} className="text-base">
+                    {t.day} {index + 1}
                   </TabsTrigger>
                 ))}
               </TabsList>
               {itinerary.days.map((day, index) => (
                 <TabsContent key={index} value={`day-${index}`}>
-                  <div className="relative pt-4 pl-4">
-                    <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-border -z-10"></div>
-                    <div className="space-y-6">
+                  <div className="relative pt-8 pb-4 pl-4">
+                    <div className="absolute left-[2.37rem] top-8 bottom-4 w-0.5 bg-border rounded-full -z-10"></div>
+                    <div className="space-y-8">
                       {day.segments.map((segment, segIndex) => renderSegmentCard(segment, segIndex))}
                     </div>
                   </div>
@@ -358,16 +378,17 @@ export default function ItineraryPage() {
           </div>
 
           <aside className="lg:w-96 lg:shrink-0 space-y-6">
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>{t.feedbackPrompt}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 <Textarea
                   placeholder={t.feedbackPlaceholder}
                   value={modificationPrompt}
                   onChange={e => setModificationPrompt(e.target.value)}
                   rows={3}
+                  className="bg-secondary/50"
                 />
                 <Button onClick={handleAdjustItinerary} disabled={isAdjusting || !modificationPrompt} className="w-full">
                   {isAdjusting ? <Loader2 className="animate-spin mr-2" /> : <Send />}
@@ -375,17 +396,19 @@ export default function ItineraryPage() {
                 </Button>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>{t.liveChecks}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">{t.budgetStatus}</label>
-                  <Progress value={(itinerary.totals.est / itinerary.trip.budget) * 100} className="mt-2" />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    ₹{itinerary.totals.est.toLocaleString()} / ₹{itinerary.trip.budget.toLocaleString()}
-                  </p>
+                  <div className="flex justify-between items-center text-sm font-medium">
+                    <label>{t.budgetStatus}</label>
+                    <span className="text-muted-foreground">
+                      ₹{itinerary.totals.est.toLocaleString()} / ₹{itinerary.trip.budget.toLocaleString()}
+                    </span>
+                  </div>
+                  <Progress value={(itinerary.totals.est / itinerary.trip.budget) * 100} className="mt-2 h-2" />
                 </div>
                 {itinerary.risks && itinerary.risks.length > 0 && (
                   <div>
@@ -394,7 +417,7 @@ export default function ItineraryPage() {
                       {itinerary.risks
                         .filter(r => r.kind === 'rain' || r.kind === 'heat')
                         .map((risk, i) => (
-                          <Badge key={i} variant="outline" className="capitalize">
+                          <Badge key={i} variant="destructive" className="capitalize">
                             {risk.severity} {risk.kind} on {new Date(risk.date).toLocaleDateString('en-US', { weekday: 'short' })}
                           </Badge>
                         ))}
@@ -403,27 +426,27 @@ export default function ItineraryPage() {
                 )}
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>{t.packingList}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {itinerary.packingList?.map((item, i) => (
-                  <Badge key={i} variant="secondary">
+                  <Badge key={i} variant="secondary" className="text-base">
                     {item}
                   </Badge>
                 ))}
               </CardContent>
             </Card>
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>{t.checklist}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {itinerary.checklist?.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 group">
-                    <Checkbox id={`checklist-${i}`} />
-                    <label htmlFor={`checklist-${i}`} className="text-sm flex-grow">
+                  <div key={i} className="flex items-center gap-3 group">
+                    <Checkbox id={`checklist-${i}`} className="w-5 h-5"/>
+                    <label htmlFor={`checklist-${i}`} className="text-sm flex-grow cursor-pointer peer-data-[state=checked]:line-through">
                       {item}
                     </label>
                     <Button
@@ -436,16 +459,16 @@ export default function ItineraryPage() {
                     </Button>
                   </div>
                 ))}
-                <div className="flex items-center gap-2 pt-2 border-t">
+                <div className="flex items-center gap-2 pt-3 border-t">
                   <Input
                     placeholder={t.addItem}
                     value={customChecklistItem}
                     onChange={e => setCustomChecklistItem(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleAddChecklistItem()}
-                    className="h-8"
+                    className="h-9 bg-secondary/50"
                   />
-                  <Button size="icon" className="h-8 w-8" onClick={handleAddChecklistItem}>
-                    <PlusCircle className="h-4 w-4" />
+                  <Button size="icon" className="h-9 w-9 shrink-0" onClick={handleAddChecklistItem}>
+                    <PlusCircle className="h-5 w-5" />
                   </Button>
                 </div>
               </CardContent>

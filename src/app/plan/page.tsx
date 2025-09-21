@@ -16,14 +16,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag } from 'lucide-react';
+import { CalendarIcon, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Sparkles } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import type { ItineraryRequest } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  nl: z.string().optional(),
+  nl: z.string().min(10, "Please describe your desired trip in a bit more detail."),
   startPoint: z.string().min(1, "Start point is required."),
   destination: z.string().min(1, "Destination is required."),
   start: z.date({ required_error: "Start date is required." }),
@@ -43,78 +43,80 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const modeOptions = [
-  { id: 'flight', label: 'Flight', icon: <Plane /> },
-  { id: 'train', label: 'Train', icon: <Train /> },
-  { id: 'bus', label: 'Bus', icon: <Bus /> },
-  { id: 'cab', label: 'Cab', icon: <Car /> },
-  { id: 'metro', label: 'Metro', icon: <TramFront /> },
-  { id: 'bike', label: 'Bike', icon: <Bike /> },
+  { id: 'flight', label: 'Flight', icon: <Plane className="w-5 h-5"/> },
+  { id: 'train', label: 'Train', icon: <Train className="w-5 h-5"/> },
+  { id: 'bus', label: 'Bus', icon: <Bus className="w-5 h-5"/> },
+  { id: 'cab', label: 'Cab', icon: <Car className="w-5 h-5"/> },
+  { id: 'metro', label: 'Metro', icon: <TramFront className="w-5 h-5"/> },
+  { id: 'bike', label: 'Bike', icon: <Bike className="w-5 h-5"/> },
 ];
 
 const themeOptions = [
-  { id: 'heritage', label: 'Heritage', icon: <Landmark /> },
-  { id: 'food', label: 'Food', icon: <Utensils /> },
-  { id: 'adventure', label: 'Adventure', icon: <Mountain /> },
-  { id: 'nightlife', label: 'Nightlife', icon: <Beer /> },
-  { id: 'shopping', label: 'Shopping', icon: <ShoppingBag /> },
+  { id: 'heritage', label: 'Heritage', icon: <Landmark className="w-5 h-5"/> },
+  { id: 'food', label: 'Food', icon: <Utensils className="w-5 h-5"/> },
+  { id: 'adventure', label: 'Adventure', icon: <Mountain className="w-5 h-5"/> },
+  { id: 'nightlife', label: 'Nightlife', icon: <Beer className="w-5 h-5"/> },
+  { id: 'shopping', label: 'Shopping', icon: <ShoppingBag className="w-5 h-5"/> },
 ];
 
 const translations = {
   en: {
-    title: "Itinerary Generator",
+    title: "Plan Your Next Adventure",
+    subTitle: "Describe your ideal trip, and let our AI craft the perfect itinerary for you.",
     demo: "Demo",
-    describeTrip: "Describe your trip",
-    examplePrompt: "e.g., A 2-day trip. Day 1 in Goa with beach hopping. Day 2 in Dandeli for water sports.",
-    details: "Plan Your Trip",
-    startPoint: "Start Point",
-    destination: "Destination",
+    describeTrip: "Describe your trip in detail",
+    examplePrompt: "e.g., A 4-day relaxed trip to Jaipur and Udaipur for 2 adults. We love palaces and street food. Our budget is around 40,000 INR. We'll travel by train between cities.",
+    details: "Trip Details",
+    startPoint: "Starting From",
+    destination: "Main Destination(s)",
     startDate: "Start Date",
     endDate: "End Date",
     budget: "Budget (INR)",
-    party: "Party",
+    party: "Travel Party",
     adults: "Adults",
-    kids: "Kids",
-    seniors: "Seniors",
-    modes: "Modes",
-    themes: "Themes",
+    kids: "Kids (0-12)",
+    seniors: "Seniors (60+)",
+    modes: "Preferred Transport",
+    themes: "Interests & Themes",
     pace: "Pace",
     relaxed: "Relaxed",
     balanced: "Balanced",
     packed: "Packed",
-    anchors: "Must-Visit Places (comma-separated)",
-    anchorsPlaceholder: "Hawa Mahal, Baga Beach",
+    anchors: "Must-Visit Places (optional, comma-separated)",
+    anchorsPlaceholder: "e.g., Hawa Mahal, Lake Pichola",
     generate: "Generate Itinerary",
-    generating: "Generating...",
+    generating: "Crafting your journey...",
     errorToastTitle: "Generation Failed",
     errorToastDescription: "The itinerary could not be generated. Please try adjusting your prompt or details.",
   },
   hi: {
-    title: "यात्रा कार्यक्रम जेनरेटर",
+    title: "अपनी अगली यात्रा की योजना बनाएं",
+    subTitle: "अपनी आदर्श यात्रा का वर्णन करें, और हमारे AI को आपके लिए सही यात्रा कार्यक्रम तैयार करने दें।",
     demo: "डेमो",
-    describeTrip: "अपनी यात्रा का वर्णन करें",
-    examplePrompt: "जैसे, 2 दिन की यात्रा। दिन 1 गोवा में समुद्र तट पर घूमना। दिन 2 दांदेली में वाटर स्पोर्ट्स के लिए।",
-    details: " अपनी यात्रा की योजना बनाएं",
+    describeTrip: "अपनी यात्रा का विस्तार से वर्णन करें",
+    examplePrompt: "जैसे, 2 वयस्कों के लिए जयपुर और उदयपुर की 4-दिवसीय आरामदायक यात्रा। हमें महल और स्ट्रीट फूड पसंद हैं। हमारा बजट लगभग 40,000 INR है। हम शहरों के बीच ट्रेन से यात्रा करेंगे।",
+    details: "यात्रा विवरण",
     startPoint: "प्रारंभ बिंदु",
-    destination: "गंतव्य",
+    destination: "मुख्य गंतव्य",
     startDate: "प्रारंभ तिथि",
     endDate: "अंतिम तिथि",
     budget: "बजट (INR)",
-    party: "समूह",
+    party: "यात्रा समूह",
     adults: "वयस्क",
-    kids: "बच्चे",
-    seniors: "वरिष्ठ",
-    modes: "माध्यम",
-    themes: "थीम",
+    kids: "बच्चे (0-12)",
+    seniors: "वरिष्ठ (60+)",
+    modes: "पसंदीदा परिवहन",
+    themes: "रुचियां और थीम",
     pace: "गति",
     relaxed: "आरामदायक",
     balanced: "संतुलित",
     packed: "व्यस्त",
-    anchors: "जरूर घूमने की जगहें (अल्पविराम से अलग)",
-    anchorsPlaceholder: "हवा महल, बागा बीच",
+anchors: "जरूर घूमने की जगहें (वैकल्पिक, अल्पविराम से अलग)",
+    anchorsPlaceholder: "जैसे, हवा महल, पिछोला झील",
     generate: "यात्रा कार्यक्रम बनाएं",
-    generating: "बना रहा है...",
+    generating: "आपकी यात्रा तैयार की जा रही है...",
     errorToastTitle: "निर्माण विफल",
-    errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित करने का प्रयास करें।",
+    errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित کرنے का प्रयास करें।",
   }
 };
 
@@ -122,8 +124,8 @@ const Chip = ({ label, icon, isSelected, ...props }: { label: string, icon: Reac
   <div
     {...props}
     className={cn(
-      "flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-colors",
-      isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-secondary hover:bg-secondary/80"
+      "flex items-center gap-2 px-4 py-2 rounded-full border-2 cursor-pointer transition-all duration-200",
+      isSelected ? "bg-primary border-primary text-primary-foreground shadow-md" : "bg-card hover:bg-secondary/80 hover:border-primary/50"
     )}
   >
     {icon}
@@ -142,8 +144,8 @@ export default function PlanPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nl: '',
-      startPoint: '',
-      destination: '',
+      startPoint: 'Mumbai',
+      destination: 'Goa',
       budgetINR: 30000,
       party: { adults: 2, kids: 0, seniors: 0 },
       modes: ['train', 'cab'],
@@ -195,10 +197,13 @@ export default function PlanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <h1 className="text-2xl font-bold font-headline">{t.title} <Badge variant="outline">{t.demo}</Badge></h1>
+    <div className="min-h-screen bg-secondary/50">
+       <header className="bg-background shadow-sm">
+        <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
+           <div>
+            <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
+            <p className="text-muted-foreground">{t.subTitle}</p>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}>
               <Languages />
@@ -207,16 +212,30 @@ export default function PlanPage() {
         </div>
       </header>
 
-      <main className="container mx-auto p-4 md:p-6 flex justify-center">
-        <div className="w-full max-w-2xl flex flex-col gap-8">
+      <main className="container mx-auto p-4 md:p-8 flex justify-center">
+        <div className="w-full max-w-4xl flex flex-col gap-8">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Card>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <Card className="shadow-lg">
                 <CardHeader>
-                  <CardTitle>{t.details}</CardTitle>
+                  <CardTitle className="text-2xl font-headline">{t.details}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <CardContent className="space-y-6">
+                   <FormField
+                    control={form.control}
+                    name="nl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-lg font-semibold">{t.describeTrip}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={4} placeholder={t.examplePrompt} className="text-base"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField control={form.control} name="startPoint" render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.startPoint}</FormLabel>
@@ -227,27 +246,13 @@ export default function PlanPage() {
                      <FormField control={form.control} name="destination" render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.destination}</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., Goa" /></FormControl>
+                        <FormControl><Input {...field} placeholder="e.g., Goa, Jaipur" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                   </div>
 
-                   <FormField
-                    control={form.control}
-                    name="nl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t.describeTrip}</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={3} placeholder={t.examplePrompt} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField control={form.control} name="start" render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>{t.startDate}</FormLabel>
@@ -288,14 +293,6 @@ export default function PlanPage() {
                     )} />
                   </div>
                   
-                  <FormField control={form.control} name="budgetINR" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t.budget}</FormLabel>
-                      <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-
                   <div>
                     <FormLabel>{t.party}</FormLabel>
                     <div className="grid grid-cols-3 gap-4 mt-2">
@@ -311,13 +308,21 @@ export default function PlanPage() {
                     </div>
                   </div>
 
+                   <FormField control={form.control} name="budgetINR" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t.budget}</FormLabel>
+                      <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
                   <FormField
                     control={form.control}
                     name="modes"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.modes}</FormLabel>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-3 pt-2">
                           {modeOptions.map(option => (
                             <Chip
                               key={option.id}
@@ -343,7 +348,7 @@ export default function PlanPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.themes}</FormLabel>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-3 pt-2">
                           {themeOptions.map(option => (
                             <Chip
                               key={option.id}
@@ -395,8 +400,8 @@ export default function PlanPage() {
               </Card>
 
               <div className="flex flex-col gap-2">
-                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
+                 <Button type="submit" size="lg" className="w-full h-14 text-xl font-bold shadow-lg" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2"/>}
                     {isLoading ? t.generating : t.generate}
                   </Button>
               </div>

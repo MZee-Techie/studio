@@ -4,7 +4,7 @@ import { Github, Twitter, Instagram } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-secondary text-secondary-foreground py-8">
+    <footer className="bg-background text-secondary-foreground py-8 border-t">
       <div className="container mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between">
         <div className="flex items-center mb-4 md:mb-0">
           <Logo />
@@ -18,15 +18,15 @@ export function Footer() {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Link href="#" className="text-muted-foreground hover:text-foreground">
+          <Link href="#" className="text-muted-foreground hover:text-primary">
             <Twitter className="h-5 w-5" />
             <span className="sr-only">Twitter</span>
           </Link>
-          <Link href="#" className="text-muted-foreground hover:text-foreground">
+          <Link href="#" className="text-muted-foreground hover:text-primary">
             <Github className="h-5 w-5" />
             <span className="sr-only">GitHub</span>
           </Link>
-          <Link href="#" className="text-muted-foreground hover:text-foreground">
+          <Link href="#" className="text-muted-foreground hover:text-primary">
             <Instagram className="h-5 w-5" />
             <span className="sr-only">Instagram</span>
           </Link>

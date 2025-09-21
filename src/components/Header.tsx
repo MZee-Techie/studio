@@ -7,7 +7,7 @@ import { Menu } from 'lucide-react';
 const navLinks = [
   { href: '/#features', label: 'Features' },
   { href: '/plan', label: 'Plan a Trip' },
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '#', label: 'Dashboard' },
 ];
 
 export function Header() {
@@ -26,12 +26,12 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center justify-end space-x-4 flex-1">
+        <div className="hidden md:flex items-center justify-end space-x-2 flex-1">
           <Button variant="ghost" asChild>
-            <Link href="/login">Sign In</Link>
+            <Link href="#">Sign In</Link>
           </Button>
           <Button asChild>
-            <Link href="/register">Sign Up</Link>
+            <Link href="#">Sign Up</Link>
           </Button>
         </div>
 
@@ -55,10 +55,10 @@ export function Header() {
                 ))}
                 <div className="flex flex-col space-y-2 pt-6">
                   <Button variant="outline" asChild>
-                    <Link href="/login">Sign In</Link>
+                    <Link href="#">Sign In</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/register">Sign Up</Link>
+                    <Link href="#">Sign Up</Link>
                   </Button>
                 </div>
               </div>
