@@ -27,6 +27,11 @@ import {
   MapPin,
   Star,
   Save,
+  Plane,
+  Train,
+  Bus,
+  CarFront,
+  ExternalLink,
 } from 'lucide-react';
 import type { Itinerary } from '@/lib/types';
 import { adjustItinerary } from '@/ai/flows/dynamic-itinerary-adjustment';
@@ -69,6 +74,8 @@ const translations = {
     saveSuccessDescription: 'Your itinerary has been saved to your dashboard.',
     saveErrorTitle: 'Save Failed',
     saveErrorDescription: 'Could not save itinerary. Please try again.',
+    bookOnEaseMyTrip: 'Book on EaseMyTrip',
+    openOla: 'Open Ola',
   },
   hi: {
     title: 'आपकी कस्टम यात्रा कार्यक्रम',
@@ -94,6 +101,8 @@ const translations = {
     saveSuccessDescription: 'आपका यात्रा कार्यक्रम आपके डैशबोर्ड में सहेज लिया गया है।',
     saveErrorTitle: 'सहेजें विफल',
     saveErrorDescription: 'यात्रा कार्यक्रम सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।',
+    bookOnEaseMyTrip: 'EaseMyTrip पर बुक करें',
+    openOla: 'ओला खोलें',
   },
 };
 
@@ -313,6 +322,17 @@ export default function ItineraryPage() {
     });
   };
 
+  const getMapsUrl = (segment: any) => {
+    if (segment.placeId) {
+      return `https://www.google.com/maps/search/?api=1&query_place_id=${segment.placeId}`;
+    }
+    if (segment.lat && segment.lon) {
+      return `https://www.google.com/maps/search/?api=1&query=${segment.lat},${segment.lon}`;
+    }
+    const query = [segment.name, segment.to, segment.city].filter(Boolean).join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  };
+  
   const renderSegmentCard = (segment: any, segIndex: number) => {
     const typeIcons = {
         transport: <Ship className="w-5 h-5 text-primary" />,
@@ -328,11 +348,49 @@ export default function ItineraryPage() {
       'late-night': <Beer className="w-4 h-4 text-purple-500" />,
       closure: <Grip className="w-4 h-4 text-red-500" />,
     };
+    
+    const transportIcons: { [key: string]: React.ReactNode } = {
+        flight: <Plane className="w-5 h-5 text-primary" />,
+        train: <Train className="w-5 h-5 text-primary" />,
+        bus: <Bus className="w-5 h-5 text-primary" />,
+        cab: <CarFront className="w-5 h-5 text-primary" />,
+        default: <Ship className="w-5 h-5 text-primary" />,
+    };
+
+    const icon = segment.type === 'transport' 
+        ? transportIcons[segment.mode as string] || transportIcons.default
+        : typeIcons[segment.type as keyof typeof typeIcons];
+
+    const renderBookingButton = () => {
+        if (segment.type === 'transport') {
+            if (segment.mode === 'cab') {
+                return (
+                    <Button variant="outline" size="sm" onClick={() => window.open('https://www.olacabs.com', '_blank')}>
+                        <ExternalLink className="mr-2 h-4 w-4" /> {t.openOla}
+                    </Button>
+                );
+            }
+            return (
+                <Button variant="outline" size="sm" onClick={() => window.open('https://www.easemytrip.com', '_blank')}>
+                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnEaseMyTrip}
+                </Button>
+            );
+        }
+        if (segment.type === 'free') { // Assuming 'free' is for hotel stays
+            return (
+                <Button variant="outline" size="sm" onClick={() => window.open('https://www.easemytrip.com/hotels', '_blank')}>
+                    <ExternalLink className="mr-2 h-4 w-4" /> {t.bookOnEaseMyTrip}
+                </Button>
+            );
+        }
+        return null;
+    };
+
 
     return (
       <div key={segIndex} className="relative ml-12">
         <div className="absolute -left-12 top-4 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-            {typeIcons[segment.type as keyof typeof typeIcons]}
+            {icon}
         </div>
         <Collapsible>
           <CollapsibleTrigger asChild>
@@ -373,22 +431,17 @@ export default function ItineraryPage() {
                       ))}
                     </div>
                   </div>
-                  {segment.placeId && (
+                  <div className="flex items-center gap-2">
+                    {renderBookingButton()}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        let url = `https://www.google.com/maps/search/?api=1&query_place_id=${segment.placeId}`;
-                        if (segment.lat && segment.lon) {
-                           url = `https://www.google.com/maps/search/?api=1&query=${segment.lat},${segment.lon}&query_place_id=${segment.placeId}`;
-                        }
-                        window.open(url, '_blank')
-                      }}
+                      onClick={() => window.open(getMapsUrl(segment), '_blank')}
                     >
                       <MapPin className="mr-2 h-4 w-4" />
                       {t.viewInMap}
                     </Button>
-                  )}
+                  </div>
                 </div>
              </div>
           </CollapsibleContent>
