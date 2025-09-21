@@ -1,34 +1,30 @@
-// src/ai/flows/dynamic-itinerary-adjustment.ts
 'use server';
 
 /**
- * @fileOverview Adjusts itinerary dynamically based on real-time factors.
+ * @fileOverview Adjusts itinerary dynamically based on real-time factors and user feedback.
  *
- * - adjustItinerary - A function that adjusts the itinerary.
+ * - adjustItinerary - A function that adjusts the itinerary based on a text prompt.
  * - AdjustItineraryInput - The input type for the adjustItinerary function.
- * - AdjustItineraryOutput - The return type for the adjustItinerary function.
+ * - Itinerary - The return type for the adjustItinerary function, reusing the main itinerary type.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
+import type {Itinerary} from './itinerary-generator';
+import {ItineraryResponseSchema} from './itinerary-generator';
 
 const AdjustItineraryInputSchema = z.object({
-  itinerary: z.string().describe('The itinerary in JSON format.'),
-  weatherConditions: z.string().describe('Current weather conditions at the destination.'),
-  riskAssessment: z.string().describe('Risk assessment for the planned activities.'),
-  budgetStatus: z.string().describe('Current budget status of the trip.'),
+  currentItinerary: z.string().describe('The current itinerary in JSON format.'),
+  modificationPrompt: z
+    .string()
+    .describe('A natural language prompt describing the desired changes.'),
 });
 
 export type AdjustItineraryInput = z.infer<typeof AdjustItineraryInputSchema>;
 
-const AdjustItineraryOutputSchema = z.object({
-  adjustedItinerary: z.string().describe('The adjusted itinerary in JSON format.'),
-  summary: z.string().describe('A summary of the adjustments made.'),
-});
-
-export type AdjustItineraryOutput = z.infer<typeof AdjustItineraryOutputSchema>;
-
-export async function adjustItinerary(input: AdjustItineraryInput): Promise<AdjustItineraryOutput> {
+export async function adjustItinerary(
+  input: AdjustItineraryInput
+): Promise<Itinerary> {
   return adjustItineraryFlow(input);
 }
 
@@ -38,16 +34,19 @@ const adjustItineraryPrompt = ai.definePrompt({
     schema: AdjustItineraryInputSchema,
   },
   output: {
-    schema: AdjustItineraryOutputSchema,
+    schema: ItineraryResponseSchema,
   },
-  prompt: `You are an AI travel assistant. Given the current itinerary, weather conditions, risk assessment, and budget status, suggest adjustments to the itinerary to make the trip safer, within budget, and more enjoyable. 
+  prompt: `You are an AI travel assistant. Your task is to modify an existing trip itinerary based on user feedback.
+The user's request for changes will be provided in a natural language prompt.
+You MUST return a complete, valid JSON object that strictly adheres to the provided response schema, incorporating the requested changes. Do not include any extra text, commentary, or markdown formatting.
 
-Itinerary: {{{itinerary}}}
-Weather Conditions: {{{weatherConditions}}}
-Risk Assessment: {{{riskAssessment}}}
-Budget Status: {{{budgetStatus}}}
+Here is the current itinerary that needs to be modified:
+{{{currentItinerary}}}
 
-Provide the adjusted itinerary in JSON format and a summary of the adjustments made.
+Here is the user's request for changes:
+"{{{modificationPrompt}}}"
+
+Please apply the changes to the itinerary and return the full, updated itinerary object.
 `,
 });
 
@@ -55,10 +54,15 @@ const adjustItineraryFlow = ai.defineFlow(
   {
     name: 'adjustItineraryFlow',
     inputSchema: AdjustItineraryInputSchema,
-    outputSchema: AdjustItineraryOutputSchema,
+    outputSchema: ItineraryResponseSchema,
   },
   async input => {
     const {output} = await adjustItineraryPrompt(input);
-    return output!;
+    if (!output) {
+      throw new Error(
+        'AI failed to generate a response that conforms to the schema.'
+      );
+    }
+    return output;
   }
 );

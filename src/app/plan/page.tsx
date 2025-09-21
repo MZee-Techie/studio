@@ -15,9 +15,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip, FileText } from 'lucide-react';
-import { generateItinerary } from '@/ai/flows/itinerary-generator';
-import { Itinerary, ItineraryRequest } from '@/ai/flows/itinerary-generator';
+import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip, FileText, Send } from 'lucide-react';
+import { generateItinerary, Itinerary, ItineraryRequest } from '@/ai/flows/itinerary-generator';
+import { adjustItinerary } from '@/ai/flows/dynamic-itinerary-adjustment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from '@/components/ui/badge';
@@ -26,9 +26,10 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-
 const formSchema = z.object({
-  nl: z.string().min(10, "Please describe your trip in at least 10 characters."),
+  nl: z.string().optional(),
+  startPoint: z.string().min(1, "Start point is required."),
+  destination: z.string().min(1, "Destination is required."),
   start: z.date({ required_error: "Start date is required." }),
   end: z.date({ required_error: "End date is required." }),
   budgetINR: z.number().min(0, "Budget must be a positive number."),
@@ -67,9 +68,11 @@ const translations = {
     title: "Itinerary Generator",
     demo: "Demo",
     downloadPDF: "Download PDF",
-    describeTrip: "Describe your dream trip",
-    examplePrompt: "e.g., A 2-day trip. Day 1 in Goa with beach hopping. Day 2 in Dandeli for water sports. 2 adults, ₹25k budget, prefer cabs.",
-    details: "Refine Your Trip Details",
+    describeTrip: "Describe your trip (optional)",
+    examplePrompt: "e.g., A 2-day trip. Day 1 in Goa with beach hopping. Day 2 in Dandeli for water sports.",
+    details: "Plan Your Trip",
+    startPoint: "Start Point",
+    destination: "Destination",
     startDate: "Start Date",
     endDate: "End Date",
     budget: "Budget (INR)",
@@ -88,6 +91,7 @@ const translations = {
     generate: "Generate Itinerary",
     regenerate: "Regenerate with changes",
     generating: "Generating...",
+    adjusting: "Adjusting...",
     itineraryView: "Your Custom Itinerary",
     liveChecks: "Live Checks",
     budgetStatus: "Budget Status",
@@ -95,22 +99,30 @@ const translations = {
     packingList: "Packing List",
     checklist: "Checklist",
     day: "Day",
+    feedbackPrompt: "What changes would you like to make?",
+    feedbackPlaceholder: "e.g., 'Make day 2 more relaxed' or 'Add a museum visit'",
+    adjustItinerary: "Adjust Itinerary",
     validationError: "Please fill out all required fields.",
     errorToastTitle: "Generation Failed",
+    adjustmentErrorToastTitle: "Adjustment Failed",
     errorToastDescription: "The itinerary could not be generated. Please try adjusting your prompt or details.",
+    adjustmentErrorToastDescription: "The itinerary could not be adjusted. Please try a different request.",
     emptyState: "Your generated itinerary will appear here. Describe your trip and click 'Generate' to start!",
   },
   hi: {
     title: "यात्रा कार्यक्रम जेनरेटर",
     demo: "डेमो",
     downloadPDF: "पीडीएफ डाउनलोड करें",
-    describeTrip: "अपनी सपनों की यात्रा का वर्णन करें",
-    examplePrompt: "जैसे, 2 दिन की यात्रा। दिन 1 गोवा में समुद्र तट पर घूमना। दिन 2 दांदेली में वाटर स्पोर्ट्स के लिए। 2 वयस्क, ₹25k बजट, कैब पसंद।",
-    details: "अपनी यात्रा का विवरण परिष्कृत करें",
+    describeTrip: "अपनी यात्रा का वर्णन करें (वैकल्पिक)",
+    examplePrompt: "जैसे, 2 दिन की यात्रा। दिन 1 गोवा में समुद्र तट पर घूमना। दिन 2 दांदेली में वाटर स्पोर्ट्स के लिए।",
+    details: "अपनी यात्रा की योजना बनाएं",
+    startPoint: "प्रारंभ बिंदु",
+    destination: "गंतव्य",
     startDate: "प्रारंभ तिथि",
     endDate: "अंतिम तिथि",
     budget: "बजट (INR)",
     party: "समूह",
+
     adults: "वयस्क",
     kids: "बच्चे",
     seniors: "वरिष्ठ",
@@ -125,6 +137,7 @@ const translations = {
     generate: "यात्रा कार्यक्रम बनाएं",
     regenerate: "बदलावों के साथ फिर से बनाएं",
     generating: "बना रहा है...",
+    adjusting: "समायोजित कर रहा है...",
     itineraryView: "आपकी कस्टम यात्रा कार्यक्रम",
     liveChecks: "लाइव जांच",
     budgetStatus: "बजट स्थिति",
@@ -132,9 +145,14 @@ const translations = {
     packingList: "पैकिंग सूची",
     checklist: "जांच सूची",
     day: "दिन",
+    feedbackPrompt: "आप क्या बदलाव करना चाहेंगे?",
+    feedbackPlaceholder: "जैसे, 'दिन 2 को और आरामदायक बनाएं' या 'एक संग्रहालय यात्रा जोड़ें'",
+    adjustItinerary: "यात्रा कार्यक्रम समायोजित करें",
     validationError: "कृपया सभी आवश्यक फ़ील्ड भरें।",
     errorToastTitle: "निर्माण विफल",
+    adjustmentErrorToastTitle: "समायोजन विफल",
     errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित करने का प्रयास करें।",
+    adjustmentErrorToastDescription: "यात्रा कार्यक्रम समायोजित नहीं किया जा सका। कृपया एक अलग अनुरोध का प्रयास करें।",
     emptyState: "आपका बनाया गया यात्रा कार्यक्रम यहां दिखाई देगा। अपनी यात्रा का वर्णन करें और शुरू करने के लिए 'बनाएं' पर क्लिक करें!",
   }
 };
@@ -154,17 +172,20 @@ const Chip = ({ label, icon, isSelected, ...props }: { label: string, icon: Reac
 
 export default function PlanPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdjusting, setIsAdjusting] = useState(false);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
+  const [modificationPrompt, setModificationPrompt] = useState("");
   const [lang, setLang] = useState<'en' | 'hi'>('en');
   const { toast } = useToast();
   const t = translations[lang];
   const itineraryRef = useRef<HTMLDivElement>(null);
 
-
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nl: '',
+      startPoint: '',
+      destination: '',
       budgetINR: 30000,
       party: { adults: 2, kids: 0, seniors: 0 },
       modes: ['train', 'cab'],
@@ -174,55 +195,61 @@ export default function PlanPage() {
     },
   });
 
-  const handlePdfDownload = async () => {
+  const handlePdfDownload = () => {
     const input = itineraryRef.current;
     if (!input || !itinerary) return;
 
-    // Temporarily make all content visible for capture
-    const hiddenElements: HTMLElement[] = [];
-    input.querySelectorAll('[data-state="closed"]').forEach((el) => {
-      const element = el as HTMLElement;
-      if (element.style.display === 'none') {
-        hiddenElements.push(element);
-        element.style.display = 'block';
-      }
-    });
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    let y = margin;
 
-    html2canvas(input, { scale: 2 }).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const ratio = canvasWidth / canvasHeight;
-      const width = pdfWidth;
-      const height = width / ratio;
+    const addText = (text: string, x: number, y: number, options?: any) => {
+        const lines = pdf.splitTextToSize(text, pageWidth - margin * 2);
+        pdf.text(lines, x, y, options);
+        return y + (lines.length * (options?.fontSize || 10) * 0.35);
+    };
 
-      let position = 0;
-      let heightLeft = height;
-
-      pdf.addImage(imgData, 'PNG', 0, position, width, height);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - height;
+    y = addText(itinerary.trip.title, pageWidth / 2, y, { fontSize: 22, align: 'center' });
+    y += 5;
+    
+    y = addText(`Trip to ${itinerary.trip.cities.join(', ')} from ${itinerary.trip.start} to ${itinerary.trip.end}`, margin, y, { fontSize: 12 });
+    y = addText(`Budget: ₹${itinerary.trip.budget.toLocaleString()}`, margin, y, { fontSize: 12 });
+    y += 10;
+    
+    itinerary.days.forEach((day, dayIndex) => {
+      if (y > pageHeight - 30) {
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, width, height);
-        heightLeft -= pdfHeight;
+        y = margin;
       }
+      y = addText(`Day ${dayIndex + 1}: ${day.city} (${day.date})`, margin, y, { fontSize: 16 });
+      y += 2;
       
-      const fileName = `trip-${itinerary.trip.cities.join('-')}-${itinerary.trip.start}.pdf`;
-      pdf.save(fileName);
+      day.segments.forEach(segment => {
+         if (y > pageHeight - 20) {
+          pdf.addPage();
+          y = margin;
+        }
+        y = addText(`${segment.name || `${segment.from} to ${segment.to}`}`, margin + 5, y, { fontSize: 12, fontStyle: 'bold' });
+        
+        let details = `Type: ${segment.type}`;
+        if(segment.window) details += ` | Time: ${segment.window.join(' - ')}`;
+        if(segment.estCost) details += ` | Cost: ₹${segment.estCost}`;
 
-      // Restore hidden elements
-      hiddenElements.forEach(el => el.style.display = '');
+        y = addText(details, margin + 5, y, { fontSize: 10 });
+        y += 5;
+      });
+      y += 5;
     });
-  };
 
+    const fileName = `trip-${itinerary.trip.cities.join('-')}-${itinerary.trip.start}.pdf`;
+    pdf.save(fileName);
+  };
+  
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    setItinerary(null); // Clear previous itinerary
+    setItinerary(null);
     try {
       const anchors = Array.isArray(data.anchors) ? data.anchors : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()) : []);
 
@@ -240,7 +267,6 @@ export default function PlanPage() {
       
       const result = await generateItinerary(request);
       
-      // Strong validation for the response schema
       if (result && result.trip && result.trip.cities && Array.isArray(result.days) && result.totals) {
         setItinerary(result);
       } else {
@@ -260,11 +286,36 @@ export default function PlanPage() {
     }
   };
 
-  const renderSegmentCard = (segment: any, day: any, segIndex: number) => {
-    const commonProps = {
-        className: "p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative ml-8",
-    };
-    
+  const handleAdjustItinerary = async () => {
+    if (!itinerary || !modificationPrompt) return;
+
+    setIsAdjusting(true);
+    try {
+      const result = await adjustItinerary({
+        currentItinerary: JSON.stringify(itinerary),
+        modificationPrompt: modificationPrompt,
+      });
+
+      if (result && result.trip && result.trip.cities && Array.isArray(result.days) && result.totals) {
+        setItinerary(result);
+        setModificationPrompt(""); // Clear prompt on success
+      } else {
+        console.error("Invalid adjusted itinerary format received from AI:", result);
+        throw new Error("Invalid itinerary format");
+      }
+    } catch (error) {
+       console.error('Error adjusting itinerary:', error);
+       toast({
+        variant: "destructive",
+        title: t.adjustmentErrorToastTitle,
+        description: (error as Error).message || t.adjustmentErrorToastDescription,
+      });
+    } finally {
+      setIsAdjusting(false);
+    }
+  }
+
+  const renderSegmentCard = (segment: any, segIndex: number) => {
     const riskIcons = {
         rain: <CloudRain className="w-4 h-4 text-blue-500" />,
         heat: <Sun className="w-4 h-4 text-orange-500" />,
@@ -274,7 +325,7 @@ export default function PlanPage() {
     };
 
     return (
-        <div key={segIndex} {...commonProps}>
+        <div key={segIndex} className="p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative ml-8">
             <div className="flex justify-between items-start">
                 <div>
                     <Badge variant="secondary" className="capitalize mb-2">{segment.type}</Badge>
@@ -313,7 +364,7 @@ export default function PlanPage() {
                 <Languages />
               </Button>
               <Button variant="outline" disabled={!itinerary || isLoading} onClick={handlePdfDownload}>
-                  <FileText className="mr-2" /> {t.downloadPDF}
+                  <Download className="mr-2" /> {t.downloadPDF}
               </Button>
             </div>
           </div>
@@ -327,14 +378,31 @@ export default function PlanPage() {
                   <CardTitle>{t.details}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField
+                  <div className="grid grid-cols-2 gap-4">
+                     <FormField control={form.control} name="startPoint" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.startPoint}</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g., Mumbai" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                     <FormField control={form.control} name="destination" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.destination}</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g., Goa" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                   <FormField
                     control={form.control}
                     name="nl"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t.describeTrip}</FormLabel>
                         <FormControl>
-                          <Textarea {...field} rows={4} placeholder={t.examplePrompt} />
+                          <Textarea {...field} rows={3} placeholder={t.examplePrompt} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -487,7 +555,7 @@ export default function PlanPage() {
               </Card>
 
               <div className="flex flex-col gap-2">
-                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                 <Button type="submit" size="lg" className="w-full" disabled={isLoading || isAdjusting}>
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
                     {isLoading ? t.generating : (itinerary ? t.regenerate : t.generate)}
                   </Button>
@@ -499,7 +567,7 @@ export default function PlanPage() {
           <div className="lg:col-span-2" ref={itineraryRef}>
             <h2 className="text-2xl font-bold mb-4 font-headline">{itinerary ? itinerary.trip.title : t.itineraryView}</h2>
             
-            {isLoading && (
+            {(isLoading && !isAdjusting) && (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <Card key={i}><CardHeader><CardTitle className="h-8 bg-muted rounded-md animate-pulse"></CardTitle></CardHeader><CardContent className="space-y-4">
@@ -530,7 +598,7 @@ export default function PlanPage() {
                         <div className="relative pt-4 pl-4">
                           <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-border -z-10"></div>
                           <div className="space-y-6">
-                            {day.segments.map((segment, segIndex) => renderSegmentCard(segment, day, segIndex))}
+                            {day.segments.map((segment, segIndex) => renderSegmentCard(segment, segIndex))}
                           </div>
                         </div>
                       </TabsContent>
@@ -539,6 +607,20 @@ export default function PlanPage() {
                 </div>
 
                 <aside className="lg:w-80 lg:shrink-0 space-y-6">
+                   <Card>
+                    <CardHeader><CardTitle>{t.feedbackPrompt}</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      <Textarea 
+                        placeholder={t.feedbackPlaceholder}
+                        value={modificationPrompt}
+                        onChange={(e) => setModificationPrompt(e.target.value)}
+                      />
+                      <Button onClick={handleAdjustItinerary} disabled={isAdjusting || !modificationPrompt} className="w-full">
+                        {isAdjusting ? <Loader2 className="animate-spin mr-2" /> : <Send />}
+                        {isAdjusting ? t.adjusting : t.adjustItinerary}
+                      </Button>
+                    </CardContent>
+                  </Card>
                   <Card>
                     <CardHeader><CardTitle>{t.liveChecks}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">

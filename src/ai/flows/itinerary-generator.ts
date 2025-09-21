@@ -12,7 +12,9 @@ import { z } from 'zod';
 
 // Define the request schema based on the user's detailed specification
 const ItineraryRequestSchema = z.object({
-  nl: z.string().describe('The free-text description from the user, which may include multiple destinations.'),
+  nl: z.string().describe('The free-text description from the user, which may include multiple destinations.').optional(),
+  startPoint: z.string().describe('The starting point of the journey.'),
+  destination: z.string().describe('The main destination or final point of the journey.'),
   start: z.string().describe('YYYY-MM-DD'),
   end: z.string().describe('YYYY-MM-DD'),
   budgetINR: z.number(),
@@ -29,7 +31,7 @@ const ItineraryRequestSchema = z.object({
 export type ItineraryRequest = z.infer<typeof ItineraryRequestSchema>;
 
 // Define the response schema based on the user's detailed specification
-const ItineraryResponseSchema = z.object({
+export const ItineraryResponseSchema = z.object({
   trip: z.object({
     title: z.string().describe('A creative title for the trip, e.g., "Coastal Journey from Goa to Dandeli"'),
     cities: z.array(z.string()).describe('An array of all cities/destinations visited in the trip.'),
@@ -39,7 +41,9 @@ const ItineraryResponseSchema = z.object({
     currency: z.enum(['INR']),
   }),
   party: z.array(z.object({
-    age: z.number()
+    age: z.number(),
+    gender: z.string().optional(),
+    vibe: z.string().optional(),
   })).optional(),
   days: z.array(
     z.object({
@@ -104,6 +108,8 @@ Assign risk tags for each segment where applicable, choosing from: 'rain', 'heat
 Include a practical 'packingList' and a pre-travel 'checklist'.
 
 User Request:
+Start Point: {{{startPoint}}}
+Destination: {{{destination}}}
 Natural Language Prompt: {{{nl}}}
 Dates: {{{start}}} to {{{end}}}
 Budget: {{{budgetINR}}} INR
