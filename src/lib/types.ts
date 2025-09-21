@@ -48,6 +48,8 @@ export const ItineraryResponseSchema = z.object({
           name: z.string().optional(),
           description: z.string().describe('A brief, engaging description of the place or activity, highlighting what makes it special.').optional(),
           placeId: z.string().describe('The Google Maps Place ID, if available.').optional(),
+          lat: z.number().optional().describe('Latitude of the location.'),
+          lon: z.number().optional().describe('Longitude of the location.'),
           mode: z.string().describe('flight|train|bus|cab|metro|bike|walk').optional(),
           from: z.string().optional(),
           to: z.string().optional(),

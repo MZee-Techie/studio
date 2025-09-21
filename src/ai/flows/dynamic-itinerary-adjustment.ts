@@ -20,7 +20,7 @@ const adjustItineraryPrompt = ai.definePrompt({
   },
   prompt: `You are an AI travel assistant. Your task is to modify an existing trip itinerary based on user feedback.
 The user's request for changes will be provided in a natural language prompt.
-You MUST return a complete, valid JSON object that strictly adheres to the provided response schema, incorporating the requested changes. Do not include any extra text, commentary, or markdown formatting.
+You MUST return a complete, valid JSON object that strictly adheres to the provided response schema, incorporating the requested changes. Preserve all existing data, including place IDs, latitude, and longitude, unless the modification explicitly changes a location. Do not include any extra text, commentary, or markdown formatting.
 
 Here is the current itinerary that needs to be modified:
 {{{currentItinerary}}}

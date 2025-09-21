@@ -21,7 +21,7 @@ You must respect all constraints from the user's request: dates, INR budget, par
 
 For each day, specify the city for that day's plan.
 Build a feasible day-by-day plan. For each segment, provide a brief, engaging 'description' of the place or activity.
-Include realistic durations, opening hours, Google ratings, and Google Place IDs where available.
+Include realistic durations, opening hours, Google ratings, Google Place IDs, latitude, and longitude where available.
 Assign risk tags for each segment where applicable, choosing from: 'rain', 'heat', 'crowd', 'late-night', 'closure'.
 Include a practical 'packingList' and a pre-travel 'checklist'.
 

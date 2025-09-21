@@ -338,7 +338,13 @@ export default function ItineraryPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query_place_id=${segment.placeId}`, '_blank')}
+                      onClick={() => {
+                        let url = `https://www.google.com/maps/search/?api=1&query_place_id=${segment.placeId}`;
+                        if (segment.lat && segment.lon) {
+                           url = `https://www.google.com/maps/search/?api=1&query=${segment.lat},${segment.lon}&query_place_id=${segment.placeId}`;
+                        }
+                        window.open(url, '_blank')
+                      }}
                     >
                       <MapPin className="mr-2 h-4 w-4" />
                       {t.viewInMap}
