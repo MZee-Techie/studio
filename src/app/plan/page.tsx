@@ -85,7 +85,7 @@ const translations = {
     anchors: "Must-Visit Places (optional, comma-separated)",
     anchorsPlaceholder: "e.g., Hawa Mahal, Lake Pichola",
     generate: "Generate Itinerary",
-    generating: "Crafting your journey...",
+    generating: "Please wait while we Ease your Journey...",
     errorToastTitle: "Generation Failed",
     errorToastDescription: "The itinerary could not be generated. Please try adjusting your prompt or details.",
   },
@@ -116,7 +116,7 @@ anchors: "जरूर घूमने की जगहें (वैकल्�
     generate: "यात्रा कार्यक्रम बनाएं",
     generating: "आपकी यात्रा तैयार की जा रही है...",
     errorToastTitle: "निर्माण विफल",
-    errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित کرنے का प्रयास करें।",
+    errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित करने का प्रयास करें।",
   }
 };
 
@@ -144,8 +144,8 @@ export default function PlanPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nl: '',
-      startPoint: 'Mumbai',
-      destination: 'Goa',
+      startPoint: '',
+      destination: '',
       budgetINR: 30000,
       party: { adults: 2, kids: 0, seniors: 0 },
       modes: ['train', 'cab'],
@@ -221,20 +221,6 @@ export default function PlanPage() {
                   <CardTitle className="text-2xl font-headline">{t.details}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                   <FormField
-                    control={form.control}
-                    name="nl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-lg font-semibold">{t.describeTrip}</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={4} placeholder={t.examplePrompt} className="text-base"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField control={form.control} name="startPoint" render={({ field }) => (
                       <FormItem>
@@ -395,6 +381,20 @@ export default function PlanPage() {
                       <FormControl><Input value={Array.isArray(field.value) ? field.value.join(', ') : ''} placeholder={t.anchorsPlaceholder} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} /></FormControl>
                     </FormItem>
                   )} />
+
+                  <FormField
+                    control={form.control}
+                    name="nl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-lg font-semibold">{t.describeTrip}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={4} placeholder={t.examplePrompt} className="text-base"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                 </CardContent>
               </Card>
