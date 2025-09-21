@@ -1,7 +1,7 @@
 // src/app/plan/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,24 +15,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip, Wand2 } from 'lucide-react';
+import { CalendarIcon, Download, Languages, Loader2, Plane, Train, Bus, Car, TramFront, Bike, Utensils, Landmark, Mountain, Beer, ShoppingBag, Wind, CloudRain, Sun, Users, IndianRupee, Grip, FileText } from 'lucide-react';
 import { generateItinerary } from '@/ai/flows/itinerary-generator';
 import { Itinerary, ItineraryRequest } from '@/ai/flows/itinerary-generator';
-import { extractTripDetails } from '@/ai/flows/extract-trip-details';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 
 const formSchema = z.object({
   nl: z.string().min(10, "Please describe your trip in at least 10 characters."),
-  city: z.string().min(1, "City is required."),
   start: z.date({ required_error: "Start date is required." }),
   end: z.date({ required_error: "End date is required." }),
-  budgetINR: z.number().min(0),
+  budgetINR: z.number().min(0, "Budget must be a positive number."),
   party: z.object({
     adults: z.number().min(0),
     kids: z.number().min(0),
@@ -67,14 +66,10 @@ const translations = {
   en: {
     title: "Itinerary Generator",
     demo: "Demo",
-    download: "Download",
-    downloadJson: "JSON",
-    downloadIcs: "ICS",
-    describeTrip: "Describe your trip in plain English…",
-    examplePrompt: "e.g., 4 relaxed days in Jaipur for 2 adults + 1 kid, ₹30k total, prefer trains and street food, must visit Hawa Mahal.",
-    fillForm: "Fill Form from Prompt",
-    details: "Details",
-    city: "City",
+    downloadPDF: "Download PDF",
+    describeTrip: "Describe your dream trip",
+    examplePrompt: "e.g., A 2-day trip. Day 1 in Goa with beach hopping. Day 2 in Dandeli for water sports. 2 adults, ₹25k budget, prefer cabs.",
+    details: "Refine Your Trip Details",
     startDate: "Start Date",
     endDate: "End Date",
     budget: "Budget (INR)",
@@ -88,35 +83,30 @@ const translations = {
     relaxed: "Relaxed",
     balanced: "Balanced",
     packed: "Packed",
-    anchors: "Anchors (comma-separated)",
-    anchorsPlaceholder: "Hawa Mahal, City Palace",
+    anchors: "Must-Visit Places (comma-separated)",
+    anchorsPlaceholder: "Hawa Mahal, Baga Beach",
     generate: "Generate Itinerary",
     regenerate: "Regenerate with changes",
     generating: "Generating...",
-    itineraryView: "Itinerary",
+    itineraryView: "Your Custom Itinerary",
     liveChecks: "Live Checks",
     budgetStatus: "Budget Status",
     weather: "Weather",
     packingList: "Packing List",
     checklist: "Checklist",
     day: "Day",
-    validationError: "Please fill out City, Dates, and Budget.",
+    validationError: "Please fill out all required fields.",
     errorToastTitle: "Generation Failed",
-    errorToastDescription: "The itinerary format was invalid. Please try regenerating.",
-    parsingPrompt: "Extracting details...",
+    errorToastDescription: "The itinerary could not be generated. Please try adjusting your prompt or details.",
     emptyState: "Your generated itinerary will appear here. Describe your trip and click 'Generate' to start!",
   },
   hi: {
     title: "यात्रा कार्यक्रम जेनरेटर",
     demo: "डेमो",
-    download: "डाउनलोड",
-    downloadJson: "JSON",
-    downloadIcs: "ICS",
-    describeTrip: "अपनी यात्रा का सरल अंग्रेजी में वर्णन करें...",
-    examplePrompt: "जैसे, 2 वयस्कों + 1 बच्चे के लिए जयपुर में 4 आरामदायक दिन, कुल ₹30k, ट्रेनों और स्ट्रीट फूड को प्राथमिकता दें, हवा महल जरूर जाएं।",
-    fillForm: "प्रॉम्प्ट से फ़ॉर्म भरें",
-    details: "विवरण",
-    city: "शहर",
+    downloadPDF: "पीडीएफ डाउनलोड करें",
+    describeTrip: "अपनी सपनों की यात्रा का वर्णन करें",
+    examplePrompt: "जैसे, 2 दिन की यात्रा। दिन 1 गोवा में समुद्र तट पर घूमना। दिन 2 दांदेली में वाटर स्पोर्ट्स के लिए। 2 वयस्क, ₹25k बजट, कैब पसंद।",
+    details: "अपनी यात्रा का विवरण परिष्कृत करें",
     startDate: "प्रारंभ तिथि",
     endDate: "अंतिम तिथि",
     budget: "बजट (INR)",
@@ -130,22 +120,21 @@ const translations = {
     relaxed: "आरामदायक",
     balanced: "संतुलित",
     packed: "व्यस्त",
-    anchors: "मुख्य आकर्षण (अल्पविराम से अलग)",
-    anchorsPlaceholder: "हवा महल, सिटी पैलेस",
+    anchors: "जरूर घूमने की जगहें (अल्पविराम से अलग)",
+    anchorsPlaceholder: "हवा महल, बागा बीच",
     generate: "यात्रा कार्यक्रम बनाएं",
     regenerate: "बदलावों के साथ फिर से बनाएं",
     generating: "बना रहा है...",
-    itineraryView: "यात्रा कार्यक्रम",
+    itineraryView: "आपकी कस्टम यात्रा कार्यक्रम",
     liveChecks: "लाइव जांच",
     budgetStatus: "बजट स्थिति",
     weather: "मौसम",
     packingList: "पैकिंग सूची",
     checklist: "जांच सूची",
     day: "दिन",
-    validationError: "कृपया शहर, तिथियां और बजट भरें।",
+    validationError: "कृपया सभी आवश्यक फ़ील्ड भरें।",
     errorToastTitle: "निर्माण विफल",
-    errorToastDescription: "यात्रा कार्यक्रम का प्रारूप अमान्य था। कृपया फिर से बनाने का प्रयास करें।",
-    parsingPrompt: "विवरण निकाले जा रहे हैं...",
+    errorToastDescription: "यात्रा कार्यक्रम उत्पन्न नहीं किया जा सका। कृपया अपना प्रॉम्प्ट या विवरण समायोजित करने का प्रयास करें।",
     emptyState: "आपका बनाया गया यात्रा कार्यक्रम यहां दिखाई देगा। अपनी यात्रा का वर्णन करें और शुरू करने के लिए 'बनाएं' पर क्लिक करें!",
   }
 };
@@ -165,17 +154,17 @@ const Chip = ({ label, icon, isSelected, ...props }: { label: string, icon: Reac
 
 export default function PlanPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [lang, setLang] = useState<'en' | 'hi'>('en');
   const { toast } = useToast();
   const t = translations[lang];
+  const itineraryRef = useRef<HTMLDivElement>(null);
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nl: '',
-      city: '',
       budgetINR: 30000,
       party: { adults: 2, kids: 0, seniors: 0 },
       modes: ['train', 'cab'],
@@ -185,40 +174,56 @@ export default function PlanPage() {
     },
   });
 
-  const handlePromptParse = async () => {
-    const nl = form.getValues('nl');
-    if (nl.length < 10) return;
+  const handlePdfDownload = async () => {
+    const input = itineraryRef.current;
+    if (!input || !itinerary) return;
 
-    setIsParsing(true);
-    try {
-      const details = await extractTripDetails({ nl });
-      if (details.city) form.setValue('city', details.city);
-      if (details.start) form.setValue('start', new Date(details.start));
-      if (details.end) form.setValue('end', new Date(details.end));
-      if (details.budgetINR) form.setValue('budgetINR', details.budgetINR);
-      if (details.party) form.setValue('party', {adults: details.party.adults || 0, kids: details.party.kids || 0, seniors: details.party.seniors || 0});
-      if (details.modes) form.setValue('modes', details.modes.filter(m => modeOptions.some(o => o.id === m)));
-      if (details.themes) form.setValue('themes', details.themes.filter(th => themeOptions.some(o => o.id === th)));
-      if (details.pace) form.setValue('pace', details.pace);
-      if (details.anchors) form.setValue('anchors', details.anchors);
-    } catch (error) {
-      console.error("Error extracting details:", error);
-      toast({
-        variant: "destructive",
-        title: "Parsing Error",
-        description: "Could not extract details from the prompt. Please fill the form manually.",
-      });
-    } finally {
-      setIsParsing(false);
-    }
+    // Temporarily make all content visible for capture
+    const hiddenElements: HTMLElement[] = [];
+    input.querySelectorAll('[data-state="closed"]').forEach((el) => {
+      const element = el as HTMLElement;
+      if (element.style.display === 'none') {
+        hiddenElements.push(element);
+        element.style.display = 'block';
+      }
+    });
+
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const ratio = canvasWidth / canvasHeight;
+      const width = pdfWidth;
+      const height = width / ratio;
+
+      let position = 0;
+      let heightLeft = height;
+
+      pdf.addImage(imgData, 'PNG', 0, position, width, height);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - height;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, width, height);
+        heightLeft -= pdfHeight;
+      }
+      
+      const fileName = `trip-${itinerary.trip.cities.join('-')}-${itinerary.trip.start}.pdf`;
+      pdf.save(fileName);
+
+      // Restore hidden elements
+      hiddenElements.forEach(el => el.style.display = '');
+    });
   };
-
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    setItinerary(null);
+    setItinerary(null); // Clear previous itinerary
     try {
-      // Ensure anchors is an array of strings
       const anchors = Array.isArray(data.anchors) ? data.anchors : (data.anchors ? String(data.anchors).split(',').map(s => s.trim()) : []);
 
       const request: ItineraryRequest = {
@@ -232,15 +237,17 @@ export default function PlanPage() {
           seniors: Number(data.party.seniors) || 0,
         }
       };
+      
       const result = await generateItinerary(request);
       
-      // Stronger validation for the response schema
-      if (result && result.trip && Array.isArray(result.days) && result.totals && Array.isArray(result.packingList) && Array.isArray(result.checklist)) {
+      // Strong validation for the response schema
+      if (result && result.trip && result.trip.cities && Array.isArray(result.days) && result.totals) {
         setItinerary(result);
       } else {
         console.error("Invalid itinerary format received from AI:", result);
         throw new Error("Invalid itinerary format");
       }
+
     } catch (error) {
       console.error('Error generating itinerary:', error);
       toast({
@@ -253,50 +260,10 @@ export default function PlanPage() {
     }
   };
 
-  const downloadFile = (content: string, fileName: string, contentType: string) => {
-    const a = document.createElement("a");
-    const file = new Blob([content], { type: contentType });
-    a.href = URL.createObjectURL(file);
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
-  const handleJsonDownload = () => {
-    if (!itinerary) return;
-    const fileName = `trip-${itinerary.trip.city}-${itinerary.trip.start}.json`;
-    downloadFile(JSON.stringify(itinerary, null, 2), fileName, 'application/json');
-  };
-
-  const handleIcsDownload = () => {
-    if (!itinerary || !itinerary.days) return;
-
-    let icsContent = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//EasedYourTrip//NONSGML v1.0//EN\n';
-
-    itinerary.days.forEach(day => {
-      day.segments.forEach(segment => {
-        const dtstart = day.date.replace(/-/g, '') + 'T' + (segment.dep || segment.window?.[0] || '0900').replace(/:/g, '') + '00';
-        const dtend = day.date.replace(/-/g, '') + 'T' + (segment.arr || segment.window?.[1] || '1000').replace(/:/g, '') + '00';
-        const summary = segment.type === 'transport' ? `${segment.mode} from ${segment.from} to ${segment.to}` : segment.name;
-
-        icsContent += 'BEGIN:VEVENT\n';
-        icsContent += `DTSTART:${dtstart}\n`;
-        icsContent += `DTEND:${dtend}\n`;
-        icsContent += `SUMMARY:${summary || 'Event'}\n`;
-        if (segment.to) icsContent += `LOCATION:${segment.to}\n`;
-        icsContent += 'END:VEVENT\n';
-      });
-    });
-
-    icsContent += 'END:VCALENDAR';
-    const fileName = `trip-${itinerary.trip.city}-${itinerary.trip.start}.ics`;
-    downloadFile(icsContent, fileName, 'text/calendar');
-  };
-
   const renderSegmentCard = (segment: any, day: any, segIndex: number) => {
     const commonProps = {
         key: segIndex,
-        className: "p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative",
+        className: "p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative ml-8",
     };
     
     const riskIcons = {
@@ -336,7 +303,6 @@ export default function PlanPage() {
     );
 };
 
-
   return (
     <FormProvider {...form}>
       <div className="min-h-screen bg-background">
@@ -347,17 +313,9 @@ export default function PlanPage() {
               <Button variant="ghost" size="icon" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}>
                 <Languages />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" disabled={!itinerary}>
-                    <Download className="mr-2" /> {t.download}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={handleJsonDownload}>{t.downloadJson}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleIcsDownload}>{t.downloadIcs}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button variant="outline" disabled={!itinerary || isLoading} onClick={handlePdfDownload}>
+                  <FileText className="mr-2" /> {t.downloadPDF}
+              </Button>
             </div>
           </div>
         </header>
@@ -367,43 +325,22 @@ export default function PlanPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>{t.describeTrip}</CardTitle>
-                  <CardDescription>{t.examplePrompt}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="nl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea {...field} rows={5} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="button" variant="outline" className="w-full" onClick={handlePromptParse} disabled={isParsing}>
-                      {isParsing ? <Loader2 className="animate-spin mr-2" /> : <Wand2 />}
-                      {isParsing ? t.parsingPrompt : t.fillForm}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
                   <CardTitle>{t.details}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField name="city" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t.city}</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                  <FormField
+                    control={form.control}
+                    name="nl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.describeTrip}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={4} placeholder={t.examplePrompt} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="start" render={({ field }) => (
@@ -458,13 +395,13 @@ export default function PlanPage() {
                     <FormLabel>{t.party}</FormLabel>
                     <div className="grid grid-cols-3 gap-4 mt-2">
                        <FormField name="party.adults" render={({ field }) => (
-                        <FormItem><FormLabel className="font-normal">{t.adults}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
+                        <FormItem><FormLabel className="font-normal text-sm">{t.adults}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
                       )} />
                        <FormField name="party.kids" render={({ field }) => (
-                        <FormItem><FormLabel className="font-normal">{t.kids}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
+                        <FormItem><FormLabel className="font-normal text-sm">{t.kids}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
                       )} />
                        <FormField name="party.seniors" render={({ field }) => (
-                        <FormItem><FormLabel className="font-normal">{t.seniors}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
+                        <FormItem><FormLabel className="font-normal text-sm">{t.seniors}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)}/></FormControl></FormItem>
                       )} />
                     </div>
                   </div>
@@ -551,7 +488,7 @@ export default function PlanPage() {
               </Card>
 
               <div className="flex flex-col gap-2">
-                 <Button type="submit" size="lg" className="w-full" disabled={isLoading || isParsing}>
+                 <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                     {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
                     {isLoading ? t.generating : (itinerary ? t.regenerate : t.generate)}
                   </Button>
@@ -560,8 +497,8 @@ export default function PlanPage() {
             </form>
           </div>
 
-          <div className="lg:col-span-2">
-            <h2 className="text-2xl font-bold mb-4 font-headline">{t.itineraryView}</h2>
+          <div className="lg:col-span-2" ref={itineraryRef}>
+            <h2 className="text-2xl font-bold mb-4 font-headline">{itinerary ? itinerary.trip.title : t.itineraryView}</h2>
             
             {isLoading && (
               <div className="space-y-4">
@@ -581,17 +518,17 @@ export default function PlanPage() {
             )}
 
             {!isLoading && itinerary && (
-              <div className="flex flex-col-reverse lg:flex-col lg:flex-row gap-8">
+              <div className="flex flex-col-reverse lg:flex-row gap-8">
                 <div className="flex-grow">
                   <Tabs defaultValue="day-0" className="w-full">
                     <TabsList>
                       {itinerary.days.map((day, index) => (
-                        <TabsTrigger key={index} value={`day-${index}`}>{t.day} {index + 1}</TabsTrigger>
+                        <TabsTrigger key={index} value={`day-${index}`}>{t.day} {index + 1}: {day.city}</TabsTrigger>
                       ))}
                     </TabsList>
                     {itinerary.days.map((day, index) => (
                       <TabsContent key={index} value={`day-${index}`}>
-                        <div className="relative pt-4">
+                        <div className="relative pt-4 pl-4">
                           <div className="absolute left-4 top-4 bottom-0 w-0.5 bg-border -z-10"></div>
                           <div className="space-y-6">
                             {day.segments.map((segment, segIndex) => renderSegmentCard(segment, day, segIndex))}

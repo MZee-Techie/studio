@@ -16,7 +16,7 @@ const TripDetailsRequestSchema = z.object({
 export type TripDetailsRequest = z.infer<typeof TripDetailsRequestSchema>;
 
 const TripDetailsResponseSchema = z.object({
-  city: z.string().optional(),
+  cities: z.array(z.string()).describe('A list of all cities or destinations mentioned.').optional(),
   start: z.string().describe('YYYY-MM-DD').optional(),
   end: z.string().describe('YYYY-MM-DD').optional(),
   budgetINR: z.number().optional(),
@@ -40,7 +40,7 @@ const extractPrompt = ai.definePrompt({
   name: 'extractTripDetailsPrompt',
   input: { schema: TripDetailsRequestSchema },
   output: { schema: TripDetailsResponseSchema },
-  prompt: `You are an expert trip planner. Extract the following details from the user's request: city, start date, end date, budget in INR, party composition (adults, kids, seniors), preferred modes of transport, travel themes, desired pace, and any must-visit places (anchors).
+  prompt: `You are an expert trip planner. Extract the following details from the user's request: all cities or destinations, start date, end date, budget in INR, party composition (adults, kids, seniors), preferred modes of transport, travel themes, desired pace, and any must-visit places (anchors).
 
 User Request: {{{nl}}}
 

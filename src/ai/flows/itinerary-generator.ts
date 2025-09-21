@@ -12,8 +12,7 @@ import { z } from 'zod';
 
 // Define the request schema based on the user's detailed specification
 const ItineraryRequestSchema = z.object({
-  nl: z.string().describe('The free-text description from the user.'),
-  city: z.string(),
+  nl: z.string().describe('The free-text description from the user, which may include multiple destinations.'),
   start: z.string().describe('YYYY-MM-DD'),
   end: z.string().describe('YYYY-MM-DD'),
   budgetINR: z.number(),
@@ -32,7 +31,8 @@ export type ItineraryRequest = z.infer<typeof ItineraryRequestSchema>;
 // Define the response schema based on the user's detailed specification
 const ItineraryResponseSchema = z.object({
   trip: z.object({
-    city: z.string(),
+    title: z.string().describe('A creative title for the trip, e.g., "Coastal Journey from Goa to Dandeli"'),
+    cities: z.array(z.string()).describe('An array of all cities/destinations visited in the trip.'),
     start: z.string().describe('YYYY-MM-DD'),
     end: z.string().describe('YYYY-MM-DD'),
     budget: z.number(),
@@ -44,6 +44,7 @@ const ItineraryResponseSchema = z.object({
   days: z.array(
     z.object({
       date: z.string(),
+      city: z.string().describe("The primary city for this day's activities."),
       dayBudget: z.number().optional(),
       daySpendEst: z.number().optional(),
       segments: z.array(
@@ -94,15 +95,16 @@ const itineraryPrompt = ai.definePrompt({
   output: { schema: ItineraryResponseSchema },
   prompt: `You are an Indian trip-planning assistant. Your output MUST be a single JSON object that strictly adheres to the provided response schema. Do not include any extra text, commentary, or markdown formatting.
 
+The user's request may involve multiple cities or destinations. Create a logical itinerary that may span across different locations day-by-day.
 You must respect all constraints from the user's request: dates, INR budget, party composition (ages), transport modes, travel themes, pace, and must-visit anchors.
 
+For each day, specify the city for that day's plan.
 Build a feasible day-by-day plan. Ensure durations, opening hours, ratings (if known), and travel legs are realistic.
 Assign risk tags for each segment where applicable, choosing from: 'rain', 'heat', 'crowd', 'late-night', 'closure'.
 Include a practical 'packingList' and a pre-travel 'checklist'.
 
 User Request:
 Natural Language Prompt: {{{nl}}}
-City: {{{city}}}
 Dates: {{{start}}} to {{{end}}}
 Budget: {{{budgetINR}}} INR
 Party: Adults: {{party.adults}}, Kids: {{party.kids}}, Seniors: {{party.seniors}}
