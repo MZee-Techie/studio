@@ -3,89 +3,11 @@
  * @fileOverview A comprehensive flow to generate a detailed trip itinerary.
  *
  * - generateItinerary - A function that generates a trip itinerary from a complex request object.
- * - ItineraryRequest - The input type for the generateItinerary function.
- * - Itinerary - The return type for the generateItinerary function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-
-// Define the request schema based on the user's detailed specification
-const ItineraryRequestSchema = z.object({
-  nl: z.string().describe('The free-text description from the user, which may include multiple destinations.').optional(),
-  startPoint: z.string().describe('The starting point of the journey.'),
-  destination: z.string().describe('The main destination or final point of the journey.'),
-  start: z.string().describe('YYYY-MM-DD'),
-  end: z.string().describe('YYYY-MM-DD'),
-  budgetINR: z.number(),
-  party: z.object({
-    adults: z.number(),
-    kids: z.number(),
-    seniors: z.number(),
-  }),
-  modes: z.array(z.string()).describe('Subset of [flight,train,bus,cab,metro,bike]'),
-  themes: z.array(z.string()).describe('Any subset of listed themes'),
-  pace: z.enum(['relaxed', 'balanced', 'packed']),
-  anchors: z.array(z.string()),
-});
-export type ItineraryRequest = z.infer<typeof ItineraryRequestSchema>;
-
-// Define the response schema based on the user's detailed specification
-export const ItineraryResponseSchema = z.object({
-  trip: z.object({
-    title: z.string().describe('A creative title for the trip, e.g., "Coastal Journey from Goa to Dandeli"'),
-    cities: z.array(z.string()).describe('An array of all cities/destinations visited in the trip.'),
-    start: z.string().describe('YYYY-MM-DD'),
-    end: z.string().describe('YYYY-MM-DD'),
-    budget: z.number(),
-    currency: z.enum(['INR']),
-  }),
-  party: z.array(z.object({
-    age: z.number(),
-    gender: z.string().optional(),
-    vibe: z.string().optional(),
-  })).optional(),
-  days: z.array(
-    z.object({
-      date: z.string(),
-      city: z.string().describe("The primary city for this day's activities."),
-      dayBudget: z.number().optional(),
-      daySpendEst: z.number().optional(),
-      segments: z.array(
-        z.object({
-          type: z.enum(['transport', 'activity', 'meal', 'free']),
-          name: z.string().optional(),
-          placeId: z.string().optional(),
-          mode: z.string().describe('flight|train|bus|cab|metro|bike|walk').optional(),
-          from: z.string().optional(),
-          to: z.string().optional(),
-          fromPlaceId: z.string().optional(),
-          toPlaceId: z.string().optional(),
-          dep: z.string().optional(),
-          arr: z.string().optional(),
-          window: z.array(z.string()).length(2).optional(),
-          openHours: z.string().optional(),
-          rating: z.number().optional(),
-          estCost: z.number().optional(),
-          risk: z.array(z.enum(['rain', 'heat', 'crowd', 'late-night', 'closure'])).optional(),
-        })
-      ),
-    })
-  ),
-  totals: z.object({
-    est: z.number(),
-    perPerson: z.number().optional(),
-  }),
-  risks: z.array(z.object({
-    kind: z.string(),
-    date: z.string(),
-    severity: z.string(),
-    note: z.string(),
-  })).optional(),
-  packingList: z.array(z.string()),
-  checklist: z.array(z.string()),
-});
-export type Itinerary = z.infer<typeof ItineraryResponseSchema>;
+import type { Itinerary, ItineraryRequest } from '@/lib/types';
+import { ItineraryRequestSchema, ItineraryResponseSchema } from '@/lib/types';
 
 // The main exported function that calls the Genkit flow
 export async function generateItinerary(request: ItineraryRequest): Promise<Itinerary> {

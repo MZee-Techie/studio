@@ -4,23 +4,12 @@
  * @fileOverview Adjusts itinerary dynamically based on real-time factors and user feedback.
  *
  * - adjustItinerary - A function that adjusts the itinerary based on a text prompt.
- * - AdjustItineraryInput - The input type for the adjustItinerary function.
- * - Itinerary - The return type for the adjustItinerary function, reusing the main itinerary type.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
-import type {Itinerary} from './itinerary-generator';
-import {ItineraryResponseSchema} from './itinerary-generator';
+import type { Itinerary, AdjustItineraryInput } from '@/lib/types';
+import { AdjustItineraryInputSchema, ItineraryResponseSchema } from '@/lib/types';
 
-const AdjustItineraryInputSchema = z.object({
-  currentItinerary: z.string().describe('The current itinerary in JSON format.'),
-  modificationPrompt: z
-    .string()
-    .describe('A natural language prompt describing the desired changes.'),
-});
-
-export type AdjustItineraryInput = z.infer<typeof AdjustItineraryInputSchema>;
 
 export async function adjustItinerary(
   input: AdjustItineraryInput
