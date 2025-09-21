@@ -262,7 +262,6 @@ export default function PlanPage() {
 
   const renderSegmentCard = (segment: any, day: any, segIndex: number) => {
     const commonProps = {
-        key: segIndex,
         className: "p-4 rounded-lg bg-card border transition-transform hover:scale-[1.02] relative ml-8",
     };
     
@@ -275,7 +274,7 @@ export default function PlanPage() {
     };
 
     return (
-        <div {...commonProps}>
+        <div key={segIndex} {...commonProps}>
             <div className="flex justify-between items-start">
                 <div>
                     <Badge variant="secondary" className="capitalize mb-2">{segment.type}</Badge>
@@ -290,8 +289,8 @@ export default function PlanPage() {
             {(segment.risk?.length > 0 || segment.rating) && (
               <div className="flex items-center justify-between mt-3 pt-3 border-t">
                   <div className="flex items-center gap-2">
-                      {segment.risk?.map((r: keyof typeof riskIcons) => (
-                           <Badge key={r} variant="outline" className="flex items-center gap-1">
+                      {segment.risk?.map((r: keyof typeof riskIcons, i: number) => (
+                           <Badge key={i} variant="outline" className="flex items-center gap-1">
                               {riskIcons[r]} {r}
                            </Badge>
                       ))}
