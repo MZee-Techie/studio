@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +46,9 @@ import 'jspdf-autotable';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'default-no-store';
+
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -108,7 +111,7 @@ const translations = {
   },
 };
 
-export default function ItineraryPage() {
+function ItineraryContent() {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [modificationPrompt, setModificationPrompt] = useState('');
@@ -618,4 +621,18 @@ export default function ItineraryPage() {
   );
 }
 
-    
+function ItineraryLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+      <Loader2 className="w-12 h-12 animate-spin text-primary" />
+    </div>
+  );
+}
+
+export default function ItineraryPage() {
+  return (
+    <Suspense fallback={<ItineraryLoading />}>
+      <ItineraryContent />
+    </Suspense>
+  );
+}
