@@ -18,9 +18,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans],
-        headline: ['Playfair', 'serif'],
-        body: ['PT Sans', 'sans-serif'],
+        sans: ['Inter', ...fontFamily.sans],
+        headline: ['Lora', 'serif'],
+        body: ['Inter', 'sans-serif'],
         code: ['Source Code Pro', 'monospace'],
       },
       colors: {
